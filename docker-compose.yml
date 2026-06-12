@@ -1,0 +1,29 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: airdnd-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-airdnd}
+      MYSQL_USER: ${MYSQL_USER:-airdnd}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-airdnd}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      TZ: Asia/Seoul
+    # 🟢 command 설정을 아래와 같이 세션 동기화 옵션까지 추가하여 변경합니다.
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --init-connect=SET NAMES utf8mb4
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - airdnd-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  airdnd-mysql-data:

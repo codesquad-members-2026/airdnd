@@ -1,0 +1,759 @@
+openapi: 3.0.3
+info:
+  title: AirDnD API
+  version: 0.1.0
+  description: AirDnD 프론트엔드와 백엔드가 공유하는 API 계약입니다.
+servers:
+  - url: http://127.0.0.1:8080
+    description: 로컬 백엔드 서버
+paths:
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: 현재 로그인 사용자 조회
+      responses:
+        "200":
+          description: 로그인 사용자 또는 null
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/User"
+                  - type: object
+                    nullable: true
+                    description: 비로그인 상태에서는 JSON null을 반환합니다.
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: 로그아웃
+      security:
+        - cookieAuth: []
+      responses:
+        "204":
+          description: 로그아웃 완료
+  /oauth2/authorization/{provider}:
+    get:
+      tags: [Auth]
+      summary: OAuth 로그인 시작
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google]
+      responses:
+        "302":
+          description: OAuth provider로 리다이렉트
+  /api/rooms:
+    get:
+      tags: [Rooms]
+      summary: 숙소 목록 검색
+      parameters:
+        - name: region
+          in: query
+          schema:
+            type: string
+        - name: checkIn
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: checkOut
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: guests
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: adults
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 8
+        - name: children
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 8
+        - name: infants
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 8
+        - name: minPrice
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: maxPrice
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: allowsPets
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: 숙소 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoomSummary"
+  /api/rooms/{roomId}:
+    get:
+      tags: [Rooms]
+      summary: 숙소 상세 조회
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: 숙소 상세
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/reservations:
+    get:
+      tags: [Reservations]
+      summary: 내 예약 목록 조회
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: 예약 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reservation"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+    post:
+      tags: [Reservations]
+      summary: 예약 생성
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReservationRequest"
+      responses:
+        "201":
+          description: 생성된 예약
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /api/reservations/{reservationId}:
+    get:
+      tags: [Reservations]
+      summary: 예약 상세 조회
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 예약 상세
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Reservations]
+      summary: 예약 취소
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: 취소 완료
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/host/rooms:
+    get:
+      tags: [Host]
+      summary: 호스트 숙소 목록 조회
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: 호스트 숙소 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HostRoom"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Host]
+      summary: 호스트 숙소 등록
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HostRoomRequest"
+      responses:
+        "201":
+          description: 등록된 숙소
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HostRoom"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/host/rooms/{roomId}:
+    get:
+      tags: [Host]
+      summary: 호스트 숙소 상세 조회
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: 호스트 숙소 상세
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HostRoom"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Host]
+      summary: 호스트 숙소 수정
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HostRoomRequest"
+      responses:
+        "200":
+          description: 수정된 숙소
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HostRoom"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/host/rooms/{roomId}/status:
+    patch:
+      tags: [Host]
+      summary: 호스트 숙소 상태 변경
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [ACTIVE, INACTIVE, PENDING_APPROVAL]
+      responses:
+        "200":
+          description: 상태 변경된 숙소
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HostRoom"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: 관리자 대시보드 지표 조회
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: 관리자 대시보드 지표
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboard"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /api/admin/rooms/pending:
+    get:
+      tags: [Admin]
+      summary: 승인 대기 숙소 목록
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: 승인 대기 숙소 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HostRoom"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /api/admin/rooms/{roomId}/approve:
+    post:
+      tags: [Admin]
+      summary: 숙소 승인
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: 승인된 숙소
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HostRoom"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/admin/rooms/{roomId}/reject:
+    post:
+      tags: [Admin]
+      summary: 숙소 반려
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: 반려된 숙소
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HostRoom"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/admin/users:
+    get:
+      tags: [Admin]
+      summary: 사용자 관리 목록
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: 사용자 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /api/admin/reservations:
+    get:
+      tags: [Admin]
+      summary: 관리자 예약 현황
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: 예약 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reservation"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /api/admin/waitlist:
+    get:
+      tags: [Admin]
+      summary: 대기 시스템 상태
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: 대기열 스냅샷
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WaitlistSnapshot"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: 알림 목록
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: 알림 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+  parameters:
+    RoomId:
+      name: roomId
+      in: path
+      required: true
+      schema:
+        type: integer
+  responses:
+    BadRequest:
+      description: 요청 형식 오류
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthenticated:
+      description: 로그인 필요
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: 권한 없음
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: 리소스 없음
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: 비즈니스 충돌
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    User:
+      type: object
+      required: [id, name, email, role]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [GUEST, HOST, ADMIN]
+        avatarUrl:
+          type: string
+          format: uri
+    RoomSummary:
+      type: object
+      required:
+        [id, name, region, address, pricePerNight, rating, reviewCount, maxGuests, imageUrl, isAvailable, allowsPets]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        region:
+          type: string
+        address:
+          type: string
+        pricePerNight:
+          type: integer
+        rating:
+          type: number
+        reviewCount:
+          type: integer
+        maxGuests:
+          type: integer
+        imageUrl:
+          type: string
+          format: uri
+        isAvailable:
+          type: boolean
+        allowsPets:
+          type: boolean
+    RoomDetail:
+      allOf:
+        - $ref: "#/components/schemas/RoomSummary"
+        - type: object
+          required: [description, amenities, hostName, latitude, longitude]
+          properties:
+            description:
+              type: string
+            amenities:
+              type: array
+              items:
+                type: string
+            imageUrls:
+              type: array
+              items:
+                type: string
+                format: uri
+            hostName:
+              type: string
+            latitude:
+              type: number
+            longitude:
+              type: number
+    Reservation:
+      type: object
+      required: [id, roomId, roomName, roomImageUrl, checkIn, checkOut, guests, totalPrice, status]
+      properties:
+        id:
+          type: integer
+        roomId:
+          type: integer
+        roomName:
+          type: string
+        roomImageUrl:
+          type: string
+          format: uri
+        region:
+          type: string
+        checkIn:
+          type: string
+          format: date
+        checkOut:
+          type: string
+          format: date
+        guests:
+          type: integer
+        totalPrice:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, CANCELED]
+        guestName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    CreateReservationRequest:
+      type: object
+      required: [roomId, checkIn, checkOut, guests]
+      properties:
+        roomId:
+          type: integer
+        checkIn:
+          type: string
+          format: date
+        checkOut:
+          type: string
+          format: date
+        guests:
+          type: integer
+          minimum: 1
+    HostRoom:
+      allOf:
+        - $ref: "#/components/schemas/RoomDetail"
+        - type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [ACTIVE, INACTIVE, PENDING_APPROVAL]
+    HostRoomRequest:
+      type: object
+      required: [name, region, address, description, pricePerNight, maxGuests, imageUrl]
+      properties:
+        name:
+          type: string
+        region:
+          type: string
+        address:
+          type: string
+        description:
+          type: string
+        pricePerNight:
+          type: integer
+          minimum: 1
+        maxGuests:
+          type: integer
+          minimum: 1
+        imageUrl:
+          type: string
+          format: uri
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        allowsPets:
+          type: boolean
+          default: false
+        amenities:
+          type: array
+          items:
+            type: string
+    AdminDashboard:
+      type: object
+      required: [pendingRooms, activeUsers, reservationsToday, waitQueueSize]
+      properties:
+        pendingRooms:
+          type: integer
+        activeUsers:
+          type: integer
+        reservationsToday:
+          type: integer
+        waitQueueSize:
+          type: integer
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        detail:
+          type: object
+          additionalProperties: true
+    AdminUser:
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - type: object
+          required: [reservationCount, joinedAt, status]
+          properties:
+            reservationCount:
+              type: integer
+            joinedAt:
+              type: string
+              format: date
+            status:
+              type: string
+              enum: [ACTIVE, BLOCKED]
+    WaitlistSnapshot:
+      type: object
+      required: [status, waitingUsers, averageWaitMinutes, admissionRatePerMinute, updatedAt]
+      properties:
+        status:
+          type: string
+          enum: [OPEN, PAUSED, CLOSED]
+        waitingUsers:
+          type: integer
+        averageWaitMinutes:
+          type: integer
+        admissionRatePerMinute:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+    Notification:
+      type: object
+      required: [id, type, title, message, read, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [RESERVATION, HOST, SYSTEM]
+        title:
+          type: string
+        message:
+          type: string
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time

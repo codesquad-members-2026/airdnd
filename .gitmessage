@@ -1,0 +1,8 @@
+<type>: <title>
+
+# 예시:
+# feat: 숙소 검색 API 추가
+# fix: 예약 취소 오류 수정
+# chore: 모노레포 기본 설정 정리
+#
+# 타입: feat, fix, docs, style, refactor, test, chore, build, ci

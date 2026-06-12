@@ -1,0 +1,48 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+
+.vscode/
+
+.idea/modules.xml
+
+# 환경 변수 파일
+.env
+.env.*
+!.env.example
+
+# 로그
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Node / 프론트엔드
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+test-results/
+playwright-report/
+
+# Java / Gradle / 백엔드
+.gradle/
+gradle-app.setting
+build/
+out/
+*.class
+
+# IntelliJ 프로젝트 산출물
+*.iml
+
+# Docker / 로컬 실행
+docker-compose.override.yml
+
+# 생성된 압축 파일
+*.zip
+*.tar
+*.tar.gz
