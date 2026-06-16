@@ -1,0 +1,12 @@
+services:
+  db:
+    image: mysql:8.0.33
+    container_name: airdnd-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "airdnd_db"
+      TZ: Asia/Seoul
+    volumes:
+      - ./docker/mysql/data:/var/lib/mysql

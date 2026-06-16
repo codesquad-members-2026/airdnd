@@ -1,0 +1,197 @@
+@import './tokens.css';
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+body, #root {
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--ink-1);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+button {
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3 {
+  margin: 0;
+}
+
+/* GNB nav link hover */
+.gnb-link {
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+.gnb-link:hover {
+  color: var(--brand-coral);
+}
+
+/* Calendar day hover */
+.cal-day:hover:not(:disabled) {
+  background: var(--surface-alt-2) !important;
+}
+
+/* Calendar chevron hover */
+.cal-chev:hover {
+  background: var(--surface-alt-2);
+}
+
+/* Destination card hover */
+.dest:hover > div:first-child {
+  opacity: 0.85;
+}
+
+/* Category card hover */
+.cat-card:hover > div:first-child {
+  opacity: 0.85;
+}
+
+/* Result row hover */
+.result-row:hover {
+  background: var(--surface-alt-2);
+  border-radius: var(--r-md);
+}
+
+/* Map price pin hover */
+.pin {
+  transition: transform 120ms ease;
+}
+.pin:hover {
+  transform: translate(-50%, -50%) scale(1.06) !important;
+  z-index: 10;
+}
+
+/* Map zoom button hover */
+.zoom:hover {
+  background: var(--surface-alt-2);
+}
+
+/* Footer link hover */
+.foot-link:hover {
+  text-decoration: underline;
+}
+
+/* Back link hover */
+.back:hover {
+  color: var(--ink-1);
+}
+
+/* Reserve button hover */
+.reserve-btn:hover {
+  background: #3a3a3a !important;
+}
+
+/* Wishlist 환경설정 메뉴 행 hover */
+.wl-menu-row:hover {
+  background: var(--surface-alt-2) !important;
+}
+
+/* Host form inputs */
+.host-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--ink-1);
+  background: #fff;
+  outline: none;
+  transition: border-color 160ms ease;
+  box-sizing: border-box;
+}
+.host-input:focus {
+  border-color: var(--ink-2);
+}
+.host-input::placeholder {
+  color: var(--ink-4);
+}
+
+@media (max-width: 720px) {
+  .host-capacity-grid,
+  .host-amenities-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Popover entrance animation */
+@keyframes popover-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.popover-enter { animation: popover-in 280ms ease forwards; }
+
+/* Payment spinner */
+@keyframes pay-spin { to { transform: rotate(360deg); } }
+.pay-spinner {
+  border-radius: 50%;
+  border: 5px solid var(--line);
+  border-top-color: var(--brand-coral);
+  animation: pay-spin 0.8s linear infinite;
+}
+/* Success check pop */
+@keyframes pay-pop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.pay-pop { animation: pay-pop 360ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
+
+/* Step expand/collapse reveal */
+@keyframes step-reveal {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.step-reveal { animation: step-reveal 420ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
+/* Price range input */
+.price-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+  outline: none;
+  cursor: pointer;
+}
+.price-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+}
+.price-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+}

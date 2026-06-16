@@ -1,0 +1,58 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Generated API client
+apps/frontend/src/shared/api/generated/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+coverage/
+
+# Caches
+.cache/
+.turbo/
+.parcel-cache/
+.vite/
+
+
+# Local databases / uploads
+*.sqlite
+*.sqlite3
+*.db
+uploads/
+
+# Package manager stores
+.pnpm-store/
+
+docker/
+
+# 테스트용 sql 파일
+seed.sql

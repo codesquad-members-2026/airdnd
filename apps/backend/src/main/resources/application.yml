@@ -1,0 +1,19 @@
+kakao:
+  rest-api:
+    key: ${KAKAO_REST_API_KEY:placeholder}
+
+spring:
+  application:
+    name: airdnd
+  profiles:
+    active: local
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        formant_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    out-of-order: true

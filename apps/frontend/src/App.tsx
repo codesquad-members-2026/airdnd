@@ -1,0 +1,53 @@
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Home } from './pages/Home';
+import { Results } from './pages/Results';
+import { Detail } from './pages/Detail';
+import { Checkout } from './pages/reservation/Checkout';
+import { StayPending } from './pages/reservation/StayPending';
+import { TripsPage } from './pages/trips/TripsPage';
+import { ReservationDetailPage } from './pages/trips/reservation-detail/ReservationDetailPage';
+import { CancelReservationPage } from './pages/trips/cancel/CancelReservationPage';
+import { HostDashboard } from './pages/host/HostDashboard';
+import { HostListingForm } from './pages/host/HostListingForm';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { MyPage } from './pages/mypage/MyPage';
+import { WishlistPage } from './pages/wishlist/WishlistPage';
+import { WishlistDetailPage } from './pages/wishlist/WishlistDetailPage';
+import { AppStateProvider } from './shared/AppState';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppStateProvider>
+        <ScrollToTop />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/results" element={<Results />} />
+          <Route path="/listings/:id" element={<Detail />} />
+          <Route path="/listings/:id/checkout" element={<Checkout />} />
+          <Route path="/listings/:id/pending" element={<StayPending />} />
+          <Route path="/trips" element={<TripsPage />} />
+          <Route path="/trips/reservation/:reservationId" element={<ReservationDetailPage />} />
+          <Route path="/trips/reservation/:reservationId/cancel" element={<CancelReservationPage />} />
+          <Route path="/host" element={<HostDashboard />} />
+          <Route path="/host/new" element={<HostListingForm />} />
+          <Route path="/host/listings/:id/edit" element={<HostListingForm />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/mypage" element={<MyPage />} />
+          <Route path="/wishlists" element={<WishlistPage />} />
+          <Route path="/wishlists/:id" element={<WishlistDetailPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppStateProvider>
+    </BrowserRouter>
+  );
+}

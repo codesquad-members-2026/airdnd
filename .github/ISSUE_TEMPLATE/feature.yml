@@ -1,0 +1,21 @@
+name: ✨ 기능 개발
+description: 새로운 기능 개발 시 사용
+title: "[FEAT] "
+labels: ["feature"]
+body:
+  - type: input
+    attributes:
+      label: 부모 이슈
+      placeholder: "#이슈번호"
+
+  - type: textarea
+    attributes:
+      label: 작업 내용
+      placeholder: 구현할 기능을 설명해주세요
+
+  - type: checkboxes
+    attributes:
+      label: 체크리스트
+      options:
+        - label: 셀프 리뷰 완료
+        - label: 테스트 완료

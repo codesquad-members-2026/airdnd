@@ -1,0 +1,71 @@
+/* ============================================================
+   airdnd — Design System foundations
+   Accommodation reservation service (숙소예약서비스)
+   Color + Type tokens extracted from the Figma source of truth.
+   ============================================================ */
+
+/* Type pairing:
+   - Pretendard  → body + UI (workhorse). Modern, neutral Korean UI standard.
+   - Gmarket Sans→ display headings only. Friendly, slightly rounded, travel warmth.
+   Noto Sans KR is kept as a fallback. */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+@import url('https://cdn.jsdelivr.net/gh/webfontworld/gmarket/GmarketSans.css');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+:root {
+  /* ---------- BRAND ---------- */
+  --brand-coral:        #E84C60;
+  --brand-coral-press:  #D43A4E;
+  --brand-coral-tint:   #FDEBEE;
+
+  /* ---------- INK (text) ---------- */
+  --ink-strong:  #111111;
+  --ink-1:       #333333;
+  --ink-2:       #4F4F4F;
+  --ink-3:       #828282;
+  --ink-4:       #BDBDBD;
+  --black:       #000000;
+
+  /* ---------- SURFACES ---------- */
+  --surface:        #FFFFFF;
+  --surface-alt:    #F7F7FC;
+  --surface-alt-2:  #F5F5F7;
+  --surface-footer: #F5F5F7;
+
+  /* ---------- LINES ---------- */
+  --line:        #E0E0E0;
+  --line-strong: #BDBDBD;
+  --line-soft:   #EFEFEF;
+
+  /* ---------- SEMANTIC ---------- */
+  --selected:    #2B2B2B;
+  --cta-dark:    #2F2F2F;
+  --success:     #118917;
+  --success-lime:#6DD028;
+  --star:        #E84C60;
+
+  /* ---------- SHADOWS ---------- */
+  --shadow-sm:  0 2px 8px rgba(51,51,51,0.05);
+  --shadow-md:  0 4px 16px rgba(224,224,224,0.30), 0 2px 8px rgba(51,51,51,0.10);
+  --shadow-lg:  0 8px 28px rgba(204,204,204,0.50), 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-pop: 0 6px 20px rgba(0,0,0,0.25);
+
+  /* ---------- RADII ---------- */
+  --r-sm:   5px;
+  --r-md:   10px;
+  --r-lg:   16px;
+  --r-xl:   32px;
+  --r-pill: 60px;
+  --r-full: 999px;
+
+  /* ---------- TYPE FAMILY ---------- */
+  --font-sans: 'Pretendard', 'Noto Sans KR', -apple-system,
+               'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-display: 'GmarketSans', 'Pretendard', 'Noto Sans KR', sans-serif;
+
+  /* ---------- TYPE WEIGHTS ---------- */
+  --w-regular: 400;
+  --w-medium:  500;
+  --w-bold:    700;
+  --w-black:   900;
+}

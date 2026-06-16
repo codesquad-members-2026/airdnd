@@ -1,0 +1,37 @@
+name: 🐛 버그 수정
+description: 버그 발견 시 사용
+title: "[FIX] "
+labels: ["bug"]
+body:
+  - type: input
+    attributes:
+      label: 부모 이슈
+      placeholder: "#이슈번호 (없으면 비워주세요)"
+
+  - type: textarea
+    attributes:
+      label: 버그 내용
+      placeholder: 어떤 버그인지 설명해주세요
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 재현 방법
+      placeholder: |
+        1. 
+        2. 
+        3.
+
+  - type: textarea
+    attributes:
+      label: 예상 동작
+      placeholder: 정상적으로 동작했다면 어떻게 되어야 하나요
+
+  - type: checkboxes
+    attributes:
+      label: 체크리스트
+      options:
+        - label: 재현 확인
+        - label: 원인 파악
+        - label: 셀프 리뷰 완료

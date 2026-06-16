@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 72" width="300" height="72">
+  <rect x="8" y="8" width="56" height="56" rx="14.6" fill="#E84C60"></rect>
+  <polygon points="36,19.2 19.2,52.8 52.8,52.8" fill="#ffffff"></polygon>
+  <polygon points="36,33.7 30.4,52.8 41.6,52.8" fill="#E84C60"></polygon>
+  <text x="80" y="50" font-family="Pretendard, &#39;Apple SD Gothic Neo&#39;, sans-serif" font-size="40" font-weight="700" letter-spacing="-1.8" fill="#333333">air<tspan fill="#E84C60">dnd</tspan></text>
+</svg>

@@ -1,0 +1,10 @@
+kakao:
+  rest-api:
+    key: test-placeholder
+
+spring:
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
