@@ -1,71 +1,207 @@
-import { useState, useRef, useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Header } from '../components/Header';
 import { Icon } from '../shared/Icon';
 import { CalendarModal } from '../components/panels/CalendarModal';
 import { GuestPanel } from '../components/panels/GuestPanel';
-import { createReservationMutation } from '../shared/api/generated/@tanstack/react-query.gen';
-import { GUEST_STUB, toReservationRequest, reservationErrorMessage } from '../shared/api/reservationMapping';
+import { toReservationRequest } from '../shared/api/reservationMapping';
+import { SaveToWishlistModal } from '../components/SaveToWishlistModal';
+import { removeWishlistItem, fetchListingWishlistId } from '../shared/api/wishlist';
+import {
+  getHostListingDetailOptions,
+  getBlockedDatesOptions,
+} from '../shared/api/generated/@tanstack/react-query.gen';
+import { AMENITY_ENUM_TO_KR } from '../shared/amenities';
 import { won } from '../shared/utils';
-import type { Listing, SearchState } from '../types';
-
-import listing1 from '../assets/listing-1.png';
-import listing2 from '../assets/listing-2.png';
-import listing3 from '../assets/listing-3.png';
-import listing4 from '../assets/listing-4.png';
-
-const ASSET_MAP: Record<string, string> = {
-  'listing-1': listing1,
-  'listing-2': listing2,
-  'listing-3': listing3,
-  'listing-4': listing4,
-};
-
-const AMENITIES = ['주방', '무선 인터넷', '에어컨', '헤어드라이어', '세탁기', '무료 주차'];
-
-interface DetailProps {
-  listing: Listing;
-  search: SearchState;
-  onChange: (v: SearchState) => void;
-  onBack: () => void;
-  onLogo: () => void;
-  onReserve: () => void;
-  onHosting: () => void;
-  onAdmin?: () => void;
-  onMyPage?: () => void;
-}
+import { LISTINGS } from '../shared/demoListings';
+import { useAppState } from '../shared/AppState';
+import { useToast } from '../shared/Toast';
+import { DetailGallery } from './detail/DetailGallery';
+import { DetailOverview } from './detail/DetailOverview';
+import { DetailRatings } from './detail/DetailRatings';
+import { DetailReviews, EmptyReviews } from './detail/DetailReviews';
+import { DetailAmenities } from './detail/DetailAmenities';
+import { DetailCalendar } from './detail/DetailCalendar';
+import { DetailDescription } from './detail/DetailDescription';
+import { DetailLocation } from './detail/DetailLocation';
+import { DetailHost } from './detail/DetailHost';
+import { DetailThingsToKnow } from './detail/DetailThingsToKnow';
 
 type Panel = 'date' | 'guest' | null;
 
-export function Detail({ listing, search, onChange, onBack, onLogo, onReserve, onHosting, onAdmin, onMyPage }: DetailProps) {
-  const l = listing;
-  const nights = 1;
-  const fee = Math.round(l.price * 0.099);
-  const tax = Math.round(l.price * 0.014);
-  const total = l.price * nights + fee + tax;
+export function Detail() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const { search, setSearch, selectedListing, setSelectedListing, isLoggedIn, openLogin } = useAppState();
+  const toast = useToast();
+  const listing = LISTINGS.find((item) => String(item.id) === id) ?? selectedListing;
+  const onChange = setSearch;
+  const onBack = () => navigate('/results');
+  const onReserve = () => navigate(`/listings/${id}/checkout`);
+
+  useEffect(() => {
+    setSelectedListing(listing);
+  }, [listing, setSelectedListing]);
+
+  // 실제 상세 API (GET /api/listings/{listingsId}). 로딩/실패 시 데모로 폴백
+  const listingId = id != null ? Number(id) : NaN;
+  const detailQuery = useQuery({
+    ...getHostListingDetailOptions({
+      path: { listingsId: listingId },
+    }),
+    enabled: Number.isFinite(listingId),
+  });
+  const d = detailQuery.data?.data;
+
+  // 점유(예약)된 날짜 조회. 보이는 2개월만이 아니라 더 넓게 미리 받아 페이지 이동 시 즉시 표시.
+  // 사용자가 우측으로 더 넘기면 onReachOffset → calMonths 확장 → 자동 추가 요청.
+  const [calMonths, setCalMonths] = useState(6);
+  const { from, to } = useMemo(() => {
+    const now = new Date();
+    const ymd = (dt: Date) =>
+      `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + calMonths + 1, 0); // calMonths 후의 말일
+    return { from: ymd(start), to: ymd(end) };
+  }, [calMonths]);
+
+  const blockedQuery = useQuery({
+    ...getBlockedDatesOptions({ path: { listingId }, query: { from, to } }),
+    enabled: Number.isFinite(listingId),
+    staleTime: 60_000,
+  });
+  const blockedDates = useMemo(
+    () => new Set(blockedQuery.data?.data?.blockedDates ?? []),
+    [blockedQuery.data],
+  );
+
+  // 보이는 가장 먼 월이 로드 구간 끝 근처에 닿으면 창을 넓혀 다음 구간을 선요청
+  const handleReachOffset = useCallback((maxOffset: number) => {
+    setCalMonths((m) => (maxOffset >= m - 1 ? maxOffset + 3 : m));
+  }, []);
+
+  // 표시용 뷰모델: 상세 API 데이터만 사용
+  const cap = d?.capacity;
+  const v = {
+    id: d?.listingId ?? listingId,
+    title: d?.name ?? '',
+    loc: d?.location ?? '',
+    price: d?.pricePerNight ?? 0,
+    rating: d?.review?.averageRating ?? 0,
+    reviews: d?.review?.reviewCount ?? 0,
+    images: d?.images ?? [],
+    hostName: d?.host?.name ?? '',
+    hostProfileUrl: d?.host?.profileUrl ?? null,
+    lat: d?.latitude,
+    lng: d?.longitude,
+    capacityLine: cap
+      ? [
+          cap.maxGuests != null ? `최대 인원 ${cap.maxGuests}명` : null,
+          cap.bedrooms != null ? `침실 ${cap.bedrooms}개` : null,
+          cap.beds != null ? `침대 ${cap.beds}개` : null,
+          cap.bathrooms != null ? `욕실 ${cap.bathrooms}개` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : '',
+    amenities: d?.amenities?.map((a) => AMENITY_ENUM_TO_KR[a] ?? a) ?? [],
+    description: d?.description ?? '',
+  };
+
+  // 선택한 체크인~체크아웃으로 박수 계산(미선택 시 1박)
+  const nights = (() => {
+    const a = search.range?.a;
+    const b = search.range?.b;
+    if (!a || !b) return 1;
+    const n = Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
+    return n > 0 ? n : 1;
+  })();
+  const total = v.price * nights;
 
   const [panel, setPanel] = useState<Panel>(null);
   const [error, setError] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const reserveMutation = useMutation(createReservationMutation());
+  // 상단 저장 버튼 ↔ 위시리스트
+  const [saved, setSaved] = useState(false);
+  const [savedWishlistId, setSavedWishlistId] = useState<number | null>(null);
+  const [saveOpen, setSaveOpen] = useState(false);
 
-  function handleReserve() {
-    setError(null);
-    let body;
+  // 상세 응답의 wishlistId로 초기 저장 상태 + 삭제 대상 반영(null이면 미저장)
+  useEffect(() => {
+    setSaved(d?.wishlistId != null);
+    setSavedWishlistId(d?.wishlistId ?? null);
+  }, [d?.wishlistId, d?.listingId]);
+
+  // "저장" 의도 실행(로그인 직후 재생용): 이미 담긴 숙소면 하트만 채우고 안내, 아니면 저장 모달을 연다.
+  // 토글이 아니라 저장 전용이므로, 이미 저장된 경우에도 삭제하지 않는다.
+  const runSaveIntent = () => {
+    fetchListingWishlistId(v.id)
+      .then((wid) => {
+        if (wid != null) {
+          setSaved(true);
+          setSavedWishlistId(wid);
+          toast.show('이미 위시리스트에 저장한 숙소예요');
+        } else {
+          setSaveOpen(true);
+        }
+      })
+      .catch(() => setSaveOpen(true));
+  };
+
+  const onToggleSave = () => {
+    // 비로그인 시 저장 모달 대신 로그인 모달로 유도. 로그인 성공(폼/구글) 후 저장 의도를 이어서 실행.
+    if (!isLoggedIn) {
+      openLogin('위시리스트에 저장하려면 로그인이 필요해요.', runSaveIntent, {
+        type: 'saveHeart',
+        listingId: v.id,
+        from: window.location.pathname,
+      });
+      return;
+    }
+    if (!saved) {
+      setSaveOpen(true);
+      return;
+    }
+    // 저장돼 있으면 삭제
+    if (savedWishlistId != null) {
+      removeWishlistItem(savedWishlistId, v.id)
+        .then(() => {
+          setSaved(false);
+          setSavedWishlistId(null);
+        })
+        .catch(() => {});
+    } else {
+      setSaved(false);
+    }
+  };
+
+  // 날짜·인원 검증 후 예약(결제) 단계로 이동. 검증 실패 시 에러 표시.
+  const proceedReserve = () => {
     try {
-      body = toReservationRequest(search);
+      // 예약 생성은 결제 단계에서 처리
+      toReservationRequest(search);
     } catch (e) {
       setError(e instanceof Error ? e.message : '예약 정보를 확인해주세요.');
       return;
     }
-    reserveMutation.mutate(
-      { path: { listingId: l.id }, query: { guest: GUEST_STUB }, body },
-      {
-        onSuccess: () => onReserve(),
-        onError: (err) => setError(reservationErrorMessage(err)),
-      },
-    );
+    onReserve();
+  };
+
+  function handleReserve() {
+    setError(null);
+    // 비로그인 시 결제 단계로 넘기지 않고 로그인 모달로 유도.
+    // 로그인 성공 시 입력해 둔 날짜/인원(전역 search) 그대로 예약 단계로 이어진다.
+    if (!isLoggedIn) {
+      openLogin('예약하려면 로그인이 필요해요.', proceedReserve, {
+        type: 'reserve',
+        listingId: v.id,
+        search,
+      });
+      return;
+    }
+    proceedReserve();
   }
 
   useEffect(() => {
@@ -81,9 +217,21 @@ export function Detail({ listing, search, onChange, onBack, onLogo, onReserve, o
   const checkin = search.dates ? search.dates.split(' – ')[0] : '날짜 입력';
   const checkout = search.dates ? search.dates.split(' – ')[1] : '날짜 입력';
 
+  // 상세 데이터 로딩/실패 가드
+  if (!d) {
+    return (
+      <div>
+        <Header mode="compact" search={search} onSearchPill={onBack} />
+        <div style={{ padding: '80px', textAlign: 'center', color: 'var(--ink-3)' }}>
+          {detailQuery.isLoading ? '불러오는 중…' : '숙소 정보를 불러올 수 없어요.'}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <Header mode="compact" search={search} onSearchPill={onBack} onLogo={onLogo} onHosting={onHosting} onAdmin={onAdmin} onMyPage={onMyPage} />
+      <Header mode="compact" search={search} onSearchPill={onBack} />
       <div style={{ padding: '28px 80px 80px', maxWidth: 1320, margin: '0 auto' }}>
         {/* Back link */}
         <div
@@ -104,108 +252,43 @@ export function Detail({ listing, search, onChange, onBack, onLogo, onReserve, o
           검색 결과로
         </div>
 
-        {/* Title */}
-        <h1
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 26,
-            marginBottom: 6,
-          }}
-        >
-          {l.title}
-        </h1>
-
-        {/* Rating + location */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            alignItems: 'center',
-            fontSize: 14,
-            marginBottom: 20,
-          }}
-        >
-          <Icon name="star" size={15} color="var(--star)" fill="var(--star)" />
-          <b>{l.rating}</b>
-          <span style={{ color: 'var(--ink-3)' }}>· 후기 {l.reviews}개 · {l.loc}</span>
-        </div>
-
-        {/* Photo gallery */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '2fr 1fr 1fr',
-            gridTemplateRows: '1fr 1fr',
-            gap: 8,
-            height: 420,
-            borderRadius: 16,
-            overflow: 'hidden',
-            marginBottom: 40,
-          }}
-        >
-          <div
-            style={{
-              gridRow: '1 / span 2',
-              background: `url(${ASSET_MAP[l.img]}) center/cover`,
-            }}
-          />
-          <div style={{ background: `url(${ASSET_MAP['listing-2']}) center/cover` }} />
-          <div style={{ background: `url(${ASSET_MAP['listing-3']}) center/cover` }} />
-          <div style={{ background: `url(${ASSET_MAP['listing-4']}) center/cover` }} />
-          <div style={{ background: `url(${ASSET_MAP['listing-1']}) center/cover` }} />
-        </div>
+        {/* Section 1: 갤러리 */}
+        <DetailGallery
+          title={v.title}
+          images={v.images}
+          saved={saved}
+          onToggleSave={onToggleSave}
+        />
 
         <div style={{ display: 'flex', gap: 64, alignItems: 'flex-start' }}>
           {/* Left: listing info */}
           <div style={{ flex: 1 }}>
-            <div
-              style={{
-                fontSize: 20,
-                fontWeight: 700,
-                paddingBottom: 24,
-                borderBottom: '1px solid var(--line)',
-              }}
-            >
-              {l.loc}, 호스트 airdnd님
-            </div>
-            <div
-              style={{
-                fontSize: 15,
-                color: 'var(--ink-1)',
-                lineHeight: 1.9,
-                padding: '24px 0',
-                borderBottom: '1px solid var(--line)',
-              }}
-            >
-              {l.specs}
-              <br />
-              {l.amen}
-              <br />
-              <br />
-              깨끗하고 아늑한 공간에서 여행을 살아보세요. 대중교통이 가깝고, 주변에 카페와
-              편의시설이 많아 단기 여행은 물론 장기 체류에도 좋습니다. 체크인 전 안내 메시지를
-              보내드립니다.
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, paddingTop: 24 }}>
-              {AMENITIES.map((a) => (
-                <span
-                  key={a}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 30,
-                    border: '1px solid var(--line-strong)',
-                    fontSize: 14,
-                  }}
-                >
-                  {a}
-                </span>
-              ))}
-            </div>
+            {/* Section 2: 개요 */}
+            <DetailOverview
+              roomTypeLabel="집 전체"
+              location={v.loc}
+              capacityLine={v.capacityLine}
+              rating={v.rating}
+              reviews={v.reviews}
+              hostName={v.hostName}
+              profileUrl={v.hostProfileUrl}
+              onHostClick={() =>
+                document.getElementById('detail-host')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
+            />
+            <DetailDescription description={v.description} />
+            <DetailAmenities provided={v.amenities} />
+            <DetailCalendar
+              value={search}
+              onChange={onChange}
+              location={v.loc}
+              blockedDates={blockedDates}
+              onReachOffset={handleReachOffset}
+            />
           </div>
 
           {/* Right: reservation cost card */}
-          <div ref={cardRef} style={{ flex: '0 0 360px', position: 'sticky', top: 100 }}>
+          <div ref={cardRef} style={{ flex: '0 0 360px', position: 'sticky', top: 100, zIndex: 30 }}>
             <div
               style={{
                 position: 'relative',
@@ -218,11 +301,11 @@ export function Detail({ listing, search, onChange, onBack, onLogo, onReserve, o
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <span>
-                  <b style={{ fontSize: 22 }}>{won(l.price)}</b>{' '}
+                  <b style={{ fontSize: 22 }}>{won(v.price)}</b>{' '}
                   <span style={{ color: 'var(--ink-3)' }}>/ 박</span>
                 </span>
                 <span style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 700 }}>
-                  후기 {l.reviews}개
+                  후기 {v.reviews}개
                 </span>
               </div>
 
@@ -267,7 +350,12 @@ export function Detail({ listing, search, onChange, onBack, onLogo, onReserve, o
 
                 {panel === 'date' && (
                   <DetailPopover width={720} right>
-                    <CalendarModal value={search} onChange={onChange} />
+                    <CalendarModal
+                      value={search}
+                      onChange={onChange}
+                      blockedDates={blockedDates}
+                      onReachOffset={handleReachOffset}
+                    />
                   </DetailPopover>
                 )}
                 {panel === 'guest' && (
@@ -279,7 +367,6 @@ export function Detail({ listing, search, onChange, onBack, onLogo, onReserve, o
 
               <button
                 onClick={handleReserve}
-                disabled={reserveMutation.isPending}
                 className="reserve-btn"
                 style={{
                   width: '100%',
@@ -291,12 +378,11 @@ export function Detail({ listing, search, onChange, onBack, onLogo, onReserve, o
                   fontFamily: 'var(--font-sans)',
                   fontWeight: 700,
                   fontSize: 16,
-                  cursor: reserveMutation.isPending ? 'default' : 'pointer',
-                  opacity: reserveMutation.isPending ? 0.6 : 1,
+                  cursor: 'pointer',
                   transition: 'background 120ms ease',
                 }}
               >
-                {reserveMutation.isPending ? '예약 중...' : '예약하기'}
+                예약하기
               </button>
 
               {error && (
@@ -316,9 +402,7 @@ export function Detail({ listing, search, onChange, onBack, onLogo, onReserve, o
                 예약 확정 전에는 요금이 청구되지 않습니다.
               </div>
 
-              <PriceRow label={`${won(l.price)} x ${nights}박`} value={won(l.price * nights)} />
-              <PriceRow label="서비스 수수료" value={won(fee)} />
-              <PriceRow label="숙박세와 수수료" value={won(tax)} />
+              <PriceRow label={`${won(v.price)} x ${nights}박`} value={won(v.price * nights)} />
 
               <div
                 style={{
@@ -337,7 +421,37 @@ export function Detail({ listing, search, onChange, onBack, onLogo, onReserve, o
             </div>
           </div>
         </div>
+
+        {/* Section 3+4: 평점/후기. 후기 0개면 빈 상태 하나로 묶어 표시 */}
+        {v.reviews === 0 ? (
+          <EmptyReviews hostName={v.hostName} />
+        ) : (
+          <>
+            <DetailRatings rating={v.rating} reviews={v.reviews} listingId={v.id} />
+            <DetailReviews reviews={v.reviews} listingId={v.id} />
+          </>
+        )}
+
+        {/* Section 7: 위치 */}
+        <DetailLocation location={v.loc} lat={v.lat} lng={v.lng} />
+
+        {/* Section 8: 호스트 소개 */}
+        <DetailHost hostName={v.hostName} rating={v.rating} reviews={v.reviews} profileUrl={v.hostProfileUrl} />
+
+        {/* 알아두어야 할 사항 */}
+        <DetailThingsToKnow checkIn={search.range?.a ?? null} />
       </div>
+
+      <SaveToWishlistModal
+        open={saveOpen}
+        listingId={saveOpen ? v.id : null}
+        onClose={() => setSaveOpen(false)}
+        onSaved={(_name, wishlistId) => {
+          setSaved(true);
+          setSavedWishlistId(wishlistId);
+          setSaveOpen(false);
+        }}
+      />
     </div>
   );
 }

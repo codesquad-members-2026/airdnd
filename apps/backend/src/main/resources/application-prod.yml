@@ -7,8 +7,16 @@ spring:
     show-sql: false
 
 cors:
-  allowed-origins: https://example.com
+  allowed-origins: ${FRONTEND_URL}
+
+toss:
+  success-url: ${FRONTEND_URL}/payments/success
+  fail-url: ${FRONTEND_URL}/payments/fail
 
 logging:
   level:
     root: info
+
+decorator:
+  datasource:
+    enabled: false

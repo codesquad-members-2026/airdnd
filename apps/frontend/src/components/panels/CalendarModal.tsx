@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '../../shared/Icon';
 import type { SearchState, DateRange } from '../../types';
 
@@ -23,24 +23,47 @@ function monthAt(offset: number) {
 interface CalendarModalProps {
   value: SearchState;
   onChange: (v: SearchState) => void;
+  // 점유(예약)된 날짜 키 집합("YYYY-MM-DD"). 해당 박은 선택 불가
+  blockedDates?: Set<string>;
+  // 우측으로 페이지를 넘길 때 가장 멀리 본 월 오프셋을 알려 선요청을 트리거
+  onReachOffset?: (maxOffset: number) => void;
 }
 
-export function CalendarModal({ value, onChange }: CalendarModalProps) {
+export function CalendarModal({ value, onChange, blockedDates, onReachOffset }: CalendarModalProps) {
   const [range, setRange] = useState<DateRange>(value.range ?? { a: null, b: null });
   const [offset, setOffset] = useState(0);
   const [hover, setHover] = useState<string | null>(null);
 
   const months = [monthAt(offset), monthAt(offset + 1)];
 
-  // Tentative end date for the hover preview band (only while picking the second date)
-  const previewEnd = range.a && !range.b && hover && hover > range.a ? hover : null;
+  // 보이는 가장 먼 월(우측) 오프셋을 부모에 알려 다음 구간을 미리 받게 함
+  useEffect(() => {
+    onReachOffset?.(offset + 1);
+  }, [offset, onReachOffset]);
+
+  // [a, b) 사이(체크인~체크아웃 직전 박)에 점유일이 있으면 그 범위는 선택 불가
+  const hasBlockedBetween = (a: string, b: string) => {
+    if (!blockedDates || blockedDates.size === 0) return false;
+    for (const k of blockedDates) if (k >= a && k < b) return true;
+    return false;
+  };
+
+  // Tentative end date for the hover preview band (only while picking the second date).
+  // 점유일을 가로지르는 미리보기는 막아 시각적으로도 선택 한계를 보여줌
+  const previewEnd =
+    range.a && !range.b && hover && hover > range.a && !hasBlockedBetween(range.a, hover)
+      ? hover
+      : null;
 
   function pick(key: string) {
     let next: DateRange;
     if (!range.a || (range.a && range.b)) {
       next = { a: key, b: null };
+    } else if (key < range.a || hasBlockedBetween(range.a, key)) {
+      // 시작 이전 클릭이거나 점유일을 가로지르면 새 시작점으로 리셋
+      next = { a: key, b: null };
     } else {
-      next = key < range.a ? { a: key, b: null } : { a: range.a, b: key };
+      next = { a: range.a, b: key };
     }
     setRange(next);
     if (next.a && next.b) {
@@ -61,6 +84,7 @@ export function CalendarModal({ value, onChange }: CalendarModalProps) {
             mo={mo}
             range={range}
             previewEnd={previewEnd}
+            blockedDates={blockedDates}
             onPick={pick}
             onHover={setHover}
           />
@@ -105,11 +129,12 @@ interface MonthProps {
   mo: { y: number; m: number; first: number; days: number };
   range: DateRange;
   previewEnd: string | null;
+  blockedDates?: Set<string>;
   onPick: (key: string) => void;
   onHover: (key: string | null) => void;
 }
 
-function Month({ mo, range, previewEnd, onPick, onHover }: MonthProps) {
+function Month({ mo, range, previewEnd, blockedDates, onPick, onHover }: MonthProps) {
   const cells: (number | null)[] = [];
   for (let i = 0; i < mo.first; i++) cells.push(null);
   for (let d = 1; d <= mo.days; d++) cells.push(d);
@@ -129,6 +154,8 @@ function Month({ mo, range, previewEnd, onPick, onHover }: MonthProps) {
   };
   // Disable any day before today
   const isPast = (d: number) => key(d) < TODAY_KEY;
+  // 점유(예약)된 박 → 선택 불가
+  const isBlocked = (d: number) => blockedDates?.has(key(d)) ?? false;
 
   return (
     <div style={{ width: 300 }}>
@@ -155,7 +182,8 @@ function Month({ mo, range, previewEnd, onPick, onHover }: MonthProps) {
           const end      = isEnd(d);
           const endpoint = start || end;
           const rng      = inRange(d);
-          const dis      = isPast(d);
+          const blocked  = isBlocked(d);
+          const dis      = isPast(d) || blocked;
 
           // Band spans the full cell; half-band on start/end to cap the range strip neatly
           let bandBg = 'transparent';
@@ -196,6 +224,8 @@ function Month({ mo, range, previewEnd, onPick, onHover }: MonthProps) {
                   cursor: dis ? 'default' : 'pointer',
                   background: endpoint ? 'var(--selected)' : 'transparent',
                   color: dis ? 'var(--ink-4)' : endpoint ? '#fff' : 'var(--ink-1)',
+                  // 점유일은 취소선으로 과거일과 구분
+                  textDecoration: blocked ? 'line-through' : 'none',
                   transition: 'background 120ms ease',
                   position: 'relative',
                   zIndex: 1,

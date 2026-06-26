@@ -20,8 +20,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import codesquad.airdnd.domain.listing.ListingRepository;
+import codesquad.airdnd.domain.listing.repository.ListingRepository;
 import codesquad.airdnd.domain.listing.entity.Listing;
+import codesquad.airdnd.domain.listing.entity.ListingState;
 import codesquad.airdnd.domain.member.Member;
 import codesquad.airdnd.domain.member.MemberRepository;
 import codesquad.airdnd.domain.reservation.dto.request.CreateReservationRequest;
@@ -66,6 +67,8 @@ class ReservationServiceTest {
 			.pricePerNight(BigDecimal.valueOf(50000))
 			.build();
 		ReflectionTestUtils.setField(listing, "id", LISTING_ID);
+		// develop 머지로 추가된 "승인된 숙소만 예약 가능" 규칙 충족을 위해 APPROVED 상태로 설정
+		ReflectionTestUtils.setField(listing, "state", ListingState.APPROVED);
 	}
 
 	private CreateReservationRequest request() {

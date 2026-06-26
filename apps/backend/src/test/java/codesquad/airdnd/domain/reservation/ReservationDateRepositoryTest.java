@@ -53,11 +53,11 @@ class ReservationDateRepositoryTest {
 		em.flush();
 
 		// when & then - 같은 숙소/날짜 재저장 시 UNIQUE 제약 위반 기대
+		// 리포지토리(saveAndFlush)는 Spring 예외 변환을 거쳐 DataIntegrityViolationException으로 변환된다.
+		// (TestEntityManager.flush()는 변환 없이 JPA 원시 예외를 던지므로 리포지토리를 사용한다)
 		ReservationDate duplicate = reservationDate(LISTING_ID, STAY_DATE, 2L);
-		assertThatThrownBy(() -> {
-			em.persist(duplicate);
-			em.flush();
-		}).isInstanceOf(DataIntegrityViolationException.class);
+		assertThatThrownBy(() -> resDateRepository.saveAndFlush(duplicate))
+			.isInstanceOf(DataIntegrityViolationException.class);
 	}
 
 	@Test

@@ -1,11 +1,5 @@
-import type { CreateReservationRequest, Member } from './generated/types.gen';
+import type { CreateReservationRequest } from './generated/types.gen';
 import type { SearchState } from '../../types';
-
-/**
- * @CurrentMember는 서버에서 인증으로 처리되지만 OpenAPI 스펙에 쿼리 파라미터로 노출됨.
- * 생성된 타입을 만족시키기 위한 빈 객체 스텁 - 백엔드가 이 값을 무시함.
- */
-export const GUEST_STUB = {} as Member;
 
 type ApiErrorBody = {
   code?: string;

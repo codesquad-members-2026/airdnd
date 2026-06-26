@@ -182,3 +182,26 @@
     border-right-color: var(--border);
   }
 }
+
+/* 메인 지역 가로 스크롤 행 — 스크롤바 숨김 (webkit) */
+.region-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* 메인 스크롤 시 compact 헤더가 위에서 미끄러져 내려옴 */
+@keyframes headerReveal {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.header-reveal {
+  animation: headerReveal 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* compact pill이 부드럽게 나타남 */
+@keyframes pillFade {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.pill-fade {
+  animation: pillFade 220ms ease;
+}

@@ -3,6 +3,7 @@ package codesquad.airdnd.domain.listing.entity;
 import static org.assertj.core.api.Assertions.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,38 @@ class ListingTest {
 			Listing listing = buildListing(host);
 
 			assertThat(listing.getState()).isEqualTo(ListingState.PENDING);
+		}
+	}
+
+	@Nested
+	@DisplayName("이미지 등록")
+	class Images {
+
+		@Test
+		@DisplayName("이미지와 함께 생성하면 각 이미지의 소속 숙소가 해당 숙소로 설정된다")
+		void assignsListingToEachImage() {
+			Listing listing = buildListingWithImages(host, List.of("url1", "url2", "url3"));
+
+			assertThat(listing.getImages())
+				.allSatisfy(image -> assertThat(image.getListing()).isSameAs(listing));
+		}
+
+		@Test
+		@DisplayName("이미지의 정렬 순서는 전달된 순서대로 0부터 부여된다")
+		void assignsSortOrderByIndex() {
+			Listing listing = buildListingWithImages(host, List.of("url1", "url2", "url3"));
+
+			assertThat(listing.getImages())
+				.extracting(ListingImage::getSortOrder)
+				.containsExactly(0, 1, 2);
+		}
+
+		@Test
+		@DisplayName("이미지 없이 생성하면 빈 이미지 목록을 가진다")
+		void initializesEmptyImagesWhenNull() {
+			Listing listing = buildListing(host);
+
+			assertThat(listing.getImages()).isEmpty();
 		}
 	}
 
@@ -155,6 +188,22 @@ class ListingTest {
 			.capacity(new Capacity(2, 1, 1, 1))
 			.pricePerNight(BigDecimal.valueOf(50000))
 			.amenities(Set.of())
+			.build();
+	}
+
+	private Listing buildListingWithImages(Member owner, List<String> imageUrls) {
+		return Listing.builder()
+			.name("테스트 숙소")
+			.roomType(RoomType.ENTIRE_PLACE)
+			.description("설명")
+			.address(new Address("서울 강남구 테헤란로 152", "101호", "06236",
+				point(37.5012, 127.0396),
+				"11", "11680"))
+			.host(owner)
+			.capacity(new Capacity(2, 1, 1, 1))
+			.pricePerNight(BigDecimal.valueOf(50000))
+			.amenities(Set.of())
+			.images(ListingImage.from(imageUrls))
 			.build();
 	}
 

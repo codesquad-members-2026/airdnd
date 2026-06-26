@@ -10,11 +10,18 @@ export interface DateRange {
   b: string | null;
 }
 
+export interface RegionSelection {
+  sidoCode: string;
+  sigunguCode: string | null;
+}
+
 export interface SearchState {
+  destination: string;
+  region: RegionSelection | null;
   dates: string;
   range: DateRange | null;
-  price: number | null;
-  priceLabel: string;
+  priceMin: number | null;
+  priceMax: number | null;
   guests: GuestCounts;
   guestLabel: string;
 }
@@ -76,7 +83,7 @@ export interface ListingFormData {
   imageUrls: string[];
 }
 
-export type View = 'home' | 'results' | 'detail' | 'host-dashboard' | 'host-new' | 'host-edit' | 'admin' | 'mypage' | 'wishlists' | 'wishlist-detail';
+export type View = 'home' | 'results' | 'detail' | 'checkout' | 'stay-pending' | 'trips' | 'host-dashboard' | 'host-new' | 'host-edit' | 'admin' | 'mypage' | 'wishlist-detail' | 'wishlists';
 
 export interface WishlistSummary {
   id: number;

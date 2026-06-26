@@ -1,42 +1,12 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
-import { SearchBar } from '../components/SearchBar';
-import type { SearchState } from '../types';
-
-import heroImg from '../assets/hero-illustration.jpg';
-import categoryNature from '../assets/category-nature.png';
-import destSeoul from '../assets/dest-seoul.png';
-import listing1 from '../assets/listing-1.png';
-import listing2 from '../assets/listing-2.png';
-import listing3 from '../assets/listing-3.png';
-import listing4 from '../assets/listing-4.png';
-
-const ASSET_MAP: Record<string, string> = {
-  hero: heroImg,
-  'category-nature': categoryNature,
-  'dest-seoul': destSeoul,
-  'listing-1': listing1,
-  'listing-2': listing2,
-  'listing-3': listing3,
-  'listing-4': listing4,
-};
-
-const DESTS: [string, string, string][] = [
-  ['서울', '차로 30분 거리', 'dest-seoul'],
-  ['의정부시', '차로 30분 거리', 'listing-2'],
-  ['대구', '차로 3.5시간 거리', 'listing-3'],
-  ['대전', '차로 2시간 거리', 'listing-4'],
-  ['광주', '차로 4시간 거리', 'listing-1'],
-  ['수원시', '차로 45분 거리', 'listing-3'],
-  ['울산', '차로 4.5시간 거리', 'listing-2'],
-  ['부천시', '차로 45분 거리', 'listing-4'],
-];
-
-const CATS: [string, string][] = [
-  ['자연생활을 만끽할 수 있는 숙소', 'category-nature'],
-  ['독특한 공간', 'listing-2'],
-  ['집 전체', 'listing-3'],
-  ['반려동물 동반 가능', 'listing-4'],
-];
+import { SearchBar, type SearchSegment } from '../components/SearchBar';
+import { SaveToWishlistModal } from '../components/SaveToWishlistModal';
+import { useAppState } from '../shared/AppState';
+import { MAJOR_CITIES, regionLabel, type RegionOption } from '../shared/regions';
+import { RegionRow } from './home/RegionRow';
+import { useHomeWishlist } from './home/useHomeWishlist';
 
 const FOOTER_COLS: [string, string[]][] = [
   ['소개', ['이용 방법', '뉴스룸', '투자자 정보', '호텔투나잇', '비즈니스 프로그램', '채용정보']],
@@ -45,28 +15,64 @@ const FOOTER_COLS: [string, string[]][] = [
   ['지원', ['코로나19 대응 방안', '도움말 센터', '예약 취소 옵션', '이웃 민원 지원', '신뢰와 안전']],
 ];
 
-interface HomeProps {
-  search: SearchState;
-  onChange: (v: SearchState) => void;
-  onSearch: () => void;
-  onHosting: () => void;
-  onAdmin?: () => void;
-  onMyPage?: () => void;
-}
+export function Home() {
+  const navigate = useNavigate();
+  const { search, setSearch } = useAppState();
+  const { isLiked, onHeart, saveFor, setSaveFor, onSaved, toast } = useHomeWishlist();
 
-export function Home({ search, onChange, onSearch, onHosting, onAdmin, onMyPage }: HomeProps) {
+  // 히어로 검색바가 상단을 지나면 compact 헤더(상단 pill)로 전환
+  const [scrolled, setScrolled] = useState(false);
+  // compact pill 클릭 시 헤더에서 검색바 인라인 확장
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const [searchSeg, setSearchSeg] = useState<SearchSegment>('dest');
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 120);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const onSearch = () => navigate('/results');
+
+  // 지역 헤더/전체보기 클릭 → 해당 지역 조건으로 검색 페이지 이동
+  const onSeeAll = (r: RegionOption) => {
+    setSearch({
+      ...search,
+      region: { sidoCode: r.sidoCode, sigunguCode: r.sigunguCode },
+      destination: regionLabel(r.sidoCode, r.sigunguCode),
+    });
+    navigate('/results');
+  };
+
   return (
     <div>
-      {/* Hero */}
-      <div style={{ position: 'relative', height: 640 }}>
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: `url(${ASSET_MAP.hero}) center/cover`,
+      {/* Hero — 흰 배경 + 검색바 밑 구분선 */}
+      <div
+        style={{
+          position: 'relative',
+          height: 210,
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--line)',
+        }}
+      >
+        <Header
+          mode={scrolled ? 'compact' : 'full'}
+          overlay
+          search={search}
+          searchExpanded={searchExpanded}
+          searchInitial={searchSeg}
+          onSearchPill={(seg) => {
+            setSearchSeg(seg);
+            setSearchExpanded(true);
           }}
+          onSearchChange={setSearch}
+          onSearchSubmit={() => {
+            setSearchExpanded(false);
+            navigate('/results');
+          }}
+          onSearchClose={() => setSearchExpanded(false)}
         />
-        <Header mode="full" onLogo={() => {}} onHosting={onHosting} onAdmin={onAdmin} onMyPage={onMyPage} />
         <div
           style={{
             position: 'absolute',
@@ -75,95 +81,59 @@ export function Home({ search, onChange, onSearch, onHosting, onAdmin, onMyPage 
             right: 0,
             display: 'flex',
             justifyContent: 'center',
+            // 스크롤 시 히어로 검색바는 페이드아웃(상단 pill로 대체)
+            opacity: scrolled ? 0 : 1,
+            transform: scrolled ? 'translateY(-12px)' : 'none',
+            transition: 'opacity 200ms ease, transform 200ms ease',
+            pointerEvents: scrolled ? 'none' : 'auto',
           }}
         >
-          <SearchBar value={search} onChange={onChange} onSearch={onSearch} />
+          <SearchBar value={search} onChange={setSearch} onSearch={onSearch} />
         </div>
       </div>
 
-      {/* Nearby destinations */}
-      <Section title="가까운 여행지 둘러보기">
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            rowGap: 28,
-            columnGap: 24,
-          }}
-        >
-          {DESTS.map(([name, dist, img]) => (
-            <div
-              key={name}
-              className="dest"
-              style={{ display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}
-            >
-              <div
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 10,
-                  background: `url(${ASSET_MAP[img]}) center/cover`,
-                  flex: 'none',
-                  transition: 'opacity 120ms ease',
-                }}
-              />
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>{name}</div>
-                <div style={{ color: 'var(--ink-3)', fontSize: 14, marginTop: 4 }}>{dist}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Category cards */}
-      <Section title="어디서나, 여행은 살아보는 거야!">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24 }}>
-          {CATS.map(([title, img]) => (
-            <div
-              key={title}
-              className="cat-card"
-              onClick={onSearch}
-              style={{ cursor: 'pointer' }}
-            >
-              <div
-                style={{
-                  width: '100%',
-                  aspectRatio: '1',
-                  borderRadius: 10,
-                  background: `url(${ASSET_MAP[img]}) center/cover`,
-                  transition: 'opacity 120ms ease',
-                }}
-              />
-              <div style={{ fontSize: 20, marginTop: 14 }}>{title}</div>
-            </div>
-          ))}
-        </div>
-      </Section>
+      {/* 주요 지역별 인기 숙소 — 가로 스와이프 */}
+      {MAJOR_CITIES.map((region) => (
+        <RegionRow
+          key={`${region.sidoCode}-${region.sigunguCode ?? ''}`}
+          region={region}
+          onOpenListing={(id) => navigate(`/listings/${id}`)}
+          onSeeAll={onSeeAll}
+          isLiked={isLiked}
+          onHeart={onHeart}
+        />
+      ))}
 
       <Footer />
-    </div>
-  );
-}
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section style={{ padding: '64px 80px 0' }}>
-      <h2
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontWeight: 700,
-          fontSize: 32,
-          marginBottom: 32,
-          lineHeight: 1.2,
-          color: 'var(--black)',
-          letterSpacing: '-0.01em',
-        }}
-      >
-        {title}
-      </h2>
-      {children}
-    </section>
+      <SaveToWishlistModal
+        open={saveFor !== null}
+        listingId={saveFor}
+        onClose={() => setSaveFor(null)}
+        onSaved={onSaved}
+      />
+
+      {toast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 32,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'var(--cta-dark)',
+            color: '#fff',
+            padding: '12px 20px',
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: 600,
+            boxShadow: 'var(--shadow-pop)',
+            zIndex: 300,
+          }}
+        >
+          {toast}
+        </div>
+      )}
+    </div>
   );
 }
 

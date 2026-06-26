@@ -7,7 +7,8 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-import codesquad.airdnd.domain.member.Member;
+import codesquad.airdnd.global.exception.BusinessException;
+import codesquad.airdnd.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -25,6 +26,14 @@ public class LoginArgumentResolver implements HandlerMethodArgumentResolver {
 	public CurrentMemberInfo resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
 		NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
 
-		return new CurrentMemberInfo(1L);
+		// 익명으로 그냥 두면 404를 반환함
+		try {
+			return new CurrentMemberInfo(authUtils.getCurrentMember().getId());
+		} catch (BusinessException e) {
+			if (e.getErrorCode() == ErrorCode.MEMBER_NOT_FOUND) {
+				return new CurrentMemberInfo(null);
+			}
+			throw e;
+		}
 	}
 }

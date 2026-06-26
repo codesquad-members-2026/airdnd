@@ -1,10 +1,13 @@
 package codesquad.airdnd.domain.wishlist;
 
-import codesquad.airdnd.domain.listing.ListingRepository;
+import codesquad.airdnd.domain.listing.repository.ListingRepository;
 import codesquad.airdnd.domain.listing.entity.Listing;
 import codesquad.airdnd.domain.member.Member;
+import codesquad.airdnd.domain.member.MemberRepository;
+import codesquad.airdnd.domain.wishlist.dto.query.ListingCoverImageProjection;
 import codesquad.airdnd.domain.wishlist.dto.query.WishlistDetailItemQueryResult;
 import codesquad.airdnd.domain.wishlist.dto.query.WishlistDetailQueryResult;
+import codesquad.airdnd.domain.wishlist.dto.query.WishlistSummaryProjection;
 import codesquad.airdnd.domain.wishlist.dto.request.ExistingWishlistAddRequest;
 import codesquad.airdnd.domain.wishlist.dto.request.NewWishlistAddRequest;
 import codesquad.airdnd.domain.wishlist.dto.request.WishlistItemPatchRequest;
@@ -13,7 +16,6 @@ import codesquad.airdnd.domain.wishlist.dto.response.*;
 import codesquad.airdnd.domain.wishlist.entity.Wishlist;
 import codesquad.airdnd.domain.wishlistItem.WishlistItem;
 import codesquad.airdnd.domain.wishlistItem.WishlistItemRepository;
-import codesquad.airdnd.global.auth.AuthUtils;
 import codesquad.airdnd.global.exception.BusinessException;
 import codesquad.airdnd.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -28,15 +30,37 @@ import java.util.stream.Collectors;
 public class WishlistService {
 
     private final WishlistRepository wishlistRepository;
-    private final AuthUtils authUtils;
+    private final MemberRepository memberRepository;
     private final ListingRepository listingRepository;
     private final WishlistItemRepository wishlistItemRepository;
 
-    public List<WishlistResponse> getWishlists(){
-        Member member = authUtils.getCurrentMember(); // TODO: Stub
-        return wishlistRepository.findWishlistsByMember(member.getId());
+    public List<WishlistResponse> getWishlists(Long memberId){
+        List<WishlistSummaryProjection> summaries = wishlistRepository.findWishlistSummaries(memberId);
+
+        List<Long> coverListingIds = summaries.stream()
+                .map(WishlistSummaryProjection::getCoverListingId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, String> imageByListing = coverListingIds.isEmpty()
+                ? Map.of()
+                : wishlistRepository.findCoverImages(coverListingIds).stream()
+                        .collect(Collectors.toMap(
+                                ListingCoverImageProjection::getListingId,
+                                ListingCoverImageProjection::getImageUrl,
+                                (a, b) -> a));
+
+        // 조립: 요약 + 대표 이미지.
+        return summaries.stream()
+                .map(s -> new WishlistResponse(
+                        s.getId(),
+                        s.getName(),
+                        s.getItemCount(),
+                        s.getCoverListingId() == null ? null : imageByListing.get(s.getCoverListingId())))
+                .toList();
     }
 
+    // TODO: 반환 DTO 규격대로 한 번에 가져와 이미지만 파싱한다면?
     public WishlistDetailResponse getWishlist(Long wishlistId){
         List<WishlistDetailQueryResult> detailList = wishlistRepository.findDetail(wishlistId);
 
@@ -111,15 +135,15 @@ public class WishlistService {
     }
 
     @Transactional
-    public NewWishlistAddResponse addItemInNewWishlist(NewWishlistAddRequest newWishlistAddRequest){
-        Member currentMember = authUtils.getCurrentMember();
+    public NewWishlistAddResponse addItemInNewWishlist(Long memberId, NewWishlistAddRequest newWishlistAddRequest){
         Listing listing = listingRepository.findById(newWishlistAddRequest.listingId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.LISTING_NOT_FOUND));
 
-        if(wishlistItemRepository.existsByMemberIdAndListingId(currentMember.getId(), listing.getId())){
+        if(wishlistItemRepository.existsByMemberIdAndListingId(memberId, listing.getId())){
             throw new BusinessException(ErrorCode.WISHLIST_ITEM_ALREADY_EXISTS);
         }
 
+        Member currentMember = memberRepository.getReferenceById(memberId);
         Wishlist wishlist = wishlistRepository.save(
                 Wishlist.builder().member(currentMember).name(newWishlistAddRequest.name()).build());
         wishlistItemRepository.save(WishlistItem.builder().wishlist(wishlist).listing(listing).build());
@@ -128,14 +152,13 @@ public class WishlistService {
     }
 
     @Transactional
-    public ExistingWishlistAddResponse addItemInExistingWishlist(Long wishlistId, ExistingWishlistAddRequest request){
-        Member currentMember = authUtils.getCurrentMember();
+    public ExistingWishlistAddResponse addItemInExistingWishlist(Long memberId, Long wishlistId, ExistingWishlistAddRequest request){
         Listing listing = listingRepository.findById(request.listingId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.LISTING_NOT_FOUND));
-        Wishlist wishlist = wishlistRepository.findByIdAndMember_Id(wishlistId, currentMember.getId())
+        Wishlist wishlist = wishlistRepository.findByIdAndMember_Id(wishlistId, memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.WISHLIST_NOT_FOUND));
 
-        if(wishlistItemRepository.existsByMemberIdAndListingId(currentMember.getId(), listing.getId())){
+        if(wishlistItemRepository.existsByMemberIdAndListingId(memberId, listing.getId())){
             throw new BusinessException(ErrorCode.WISHLIST_ITEM_ALREADY_EXISTS);
         }
 
@@ -145,20 +168,16 @@ public class WishlistService {
     }
 
     @Transactional
-    public void deleteWishlist(Long wishlistId){
-        Member currentMember = authUtils.getCurrentMember();
-
-        Wishlist wishlist = wishlistRepository.findByIdAndMember_Id(wishlistId, currentMember.getId())
+    public void deleteWishlist(Long memberId, Long wishlistId){
+        Wishlist wishlist = wishlistRepository.findByIdAndMember_Id(wishlistId, memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.WISHLIST_NOT_FOUND));
 
         wishlistRepository.delete(wishlist);
     }
 
     @Transactional
-    public void deleteItemInWishlist(Long wishlistId, Long listingId){
-        Member currentMember = authUtils.getCurrentMember();
-
-        Wishlist wishlist = wishlistRepository.findByIdAndMember_Id(wishlistId, currentMember.getId())
+    public void deleteItemInWishlist(Long memberId, Long wishlistId, Long listingId){
+        Wishlist wishlist = wishlistRepository.findByIdAndMember_Id(wishlistId, memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.WISHLIST_NOT_FOUND));
 
         WishlistItem wishlistItem = wishlistItemRepository.findByWishlist_IdAndListing_Id(wishlist.getId(), listingId)
@@ -167,10 +186,8 @@ public class WishlistService {
     }
 
     @Transactional
-    public WishlistPatchResponse patchWishlist(Long wishlistId, WishlistPatchRequest request){
-        Member currentMember = authUtils.getCurrentMember();
-
-        Wishlist wishlist = wishlistRepository.findByIdAndMember_Id(wishlistId, currentMember.getId())
+    public WishlistPatchResponse patchWishlist(Long memberId, Long wishlistId, WishlistPatchRequest request){
+        Wishlist wishlist = wishlistRepository.findByIdAndMember_Id(wishlistId, memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.WISHLIST_NOT_FOUND));
 
         wishlist.updateName(request.name());
@@ -179,10 +196,8 @@ public class WishlistService {
     }
 
     @Transactional
-    public WishlistItemPatchResponse patchItemInWishlist(Long wishlistId, Long listingId, WishlistItemPatchRequest request){
-        Member currentMember = authUtils.getCurrentMember();
-
-        Wishlist wishlist = wishlistRepository.findByIdAndMember_Id(wishlistId, currentMember.getId())
+    public WishlistItemPatchResponse patchItemInWishlist(Long memberId, Long wishlistId, Long listingId, WishlistItemPatchRequest request){
+        Wishlist wishlist = wishlistRepository.findByIdAndMember_Id(wishlistId, memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.WISHLIST_NOT_FOUND));
         WishlistItem wishlistItem = wishlistItemRepository.findByWishlist_IdAndListing_Id(wishlist.getId(), listingId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.WISHLIST_ITEM_NOT_FOUND));

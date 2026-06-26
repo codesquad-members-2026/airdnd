@@ -15,8 +15,8 @@ interface SaveToWishlistModalProps {
   /** 저장할 리스팅 id (열려 있을 땐 non-null) */
   listingId: number | null;
   onClose: () => void;
-  /** 저장 성공 시: 위시리스트 이름을 넘겨 부모가 하트 채움 + 토스트 처리 */
-  onSaved: (wishlistName: string) => void;
+  /** 저장 성공 시: 위시리스트 이름·id를 넘겨 부모가 하트 채움 + 토스트 + unlike 대상 추적 */
+  onSaved: (wishlistName: string, wishlistId: number) => void;
 }
 
 /**
@@ -81,7 +81,7 @@ export function SaveToWishlistModal({ open, listingId, onClose, onSaved }: SaveT
     setSubmitting(true);
     setError(null);
     addItemToWishlist(w.id, listingId)
-      .then(() => onSaved(w.name))
+      .then(() => onSaved(w.name, w.id))
       .catch(handleError)
       .finally(() => setSubmitting(false));
   };
@@ -92,7 +92,7 @@ export function SaveToWishlistModal({ open, listingId, onClose, onSaved }: SaveT
     setSubmitting(true);
     setError(null);
     createWishlistWithItem(listingId, trimmed)
-      .then(() => onSaved(trimmed))
+      .then((res) => onSaved(trimmed, res.wishlistId))
       .catch(handleError)
       .finally(() => setSubmitting(false));
   };

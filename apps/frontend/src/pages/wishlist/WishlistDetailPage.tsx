@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { HostHeader } from '../../components/HostHeader';
 import { EditNoteModal } from '../../components/EditNoteModal';
 import { RenameWishlistModal } from '../../components/RenameWishlistModal';
@@ -12,16 +13,17 @@ import {
   removeWishlistItem,
   ApiError,
 } from '../../shared/api/wishlist';
+import { API_BASE } from '../../shared/api/config';
+import { refreshingFetch } from '../../shared/api/http';
 import type { WishlistDetail, WishlistDetailItem } from '../../types';
 
-interface WishlistDetailPageProps {
-  wishlistId: number;
-  onBack: () => void;
-  onLogo: () => void;
-  onHosting?: () => void;
-}
-
-export function WishlistDetailPage({ wishlistId, onBack, onLogo, onHosting }: WishlistDetailPageProps) {
+export function WishlistDetailPage() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const wishlistId = Number(id);
+  const onBack = () => navigate('/wishlists');
+  const onLogo = () => navigate('/');
+  const onHosting = () => navigate('/host');
   const [detail, setDetail] = useState<WishlistDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,7 +46,7 @@ export function WishlistDetailPage({ wishlistId, onBack, onLogo, onHosting }: Wi
 
   useEffect(() => {
     setLoading(true);
-    fetch(`http://localhost:8080/api/wishlists/${wishlistId}`)
+    refreshingFetch(`${API_BASE}/api/wishlists/${wishlistId}`, { credentials: 'include' })
       .then(res => res.json())
       .then(json => setDetail(json.data ?? null))
       .catch(() => {})
@@ -234,6 +236,7 @@ export function WishlistDetailPage({ wishlistId, onBack, onLogo, onHosting }: Wi
                 key={item.listingId}
                 item={item}
                 removing={removingId === item.listingId}
+                onOpen={() => navigate(`/listings/${item.listingId}`)}
                 onEditNote={() => openNote(item)}
                 onRemove={() => removeItem(item.listingId)}
               />
@@ -289,10 +292,11 @@ function PillButton({ children }: { children: React.ReactNode }) {
 }
 
 function ListingCard({
-  item, removing, onEditNote, onRemove,
+  item, removing, onOpen, onEditNote, onRemove,
 }: {
   item: WishlistDetailItem;
   removing: boolean;
+  onOpen: () => void;
   onEditNote: () => void;
   onRemove: () => void;
 }) {
@@ -303,6 +307,7 @@ function ListingCard({
     <div>
       <div
         style={{ position: 'relative', cursor: 'pointer' }}
+        onClick={onOpen}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
@@ -332,7 +337,10 @@ function ListingCard({
         <button
           aria-label="위시리스트에서 제거"
           disabled={removing}
-          onClick={onRemove}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
           style={{
             position: 'absolute', top: 12, right: 12,
             width: 30, height: 30, borderRadius: '50%',
@@ -347,7 +355,10 @@ function ListingCard({
       </div>
 
       <div style={{ marginTop: 14 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink-1)' }}>
+        <div
+          onClick={onOpen}
+          style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink-1)', cursor: 'pointer' }}
+        >
           {item.listingName}
         </div>
         <div style={{ fontSize: 14, color: 'var(--ink-2)', marginTop: 4 }}>

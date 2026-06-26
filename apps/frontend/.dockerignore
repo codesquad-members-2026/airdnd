@@ -1,0 +1,5 @@
+node_modules
+dist
+.git
+*.log
+# 주의: .env / .env.production 은 일부러 제외하지 않음 (vite build 시 VITE_* 키 필요)

@@ -21,7 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import codesquad.airdnd.domain.listing.ListingRepository;
+import codesquad.airdnd.domain.listing.repository.ListingRepository;
 import codesquad.airdnd.domain.listing.entity.Address;
 import codesquad.airdnd.domain.listing.entity.Capacity;
 import codesquad.airdnd.domain.listing.entity.Listing;
@@ -41,7 +41,7 @@ import codesquad.airdnd.domain.wishlist.dto.response.WishlistPatchResponse;
 import codesquad.airdnd.domain.wishlist.entity.Wishlist;
 import codesquad.airdnd.domain.wishlistItem.WishlistItem;
 import codesquad.airdnd.domain.wishlistItem.WishlistItemRepository;
-import codesquad.airdnd.global.auth.AuthUtils;
+import codesquad.airdnd.domain.member.MemberRepository;
 import codesquad.airdnd.global.exception.BusinessException;
 import codesquad.airdnd.global.exception.ErrorCode;
 
@@ -58,7 +58,7 @@ class WishlistServiceTest {
 	private ListingRepository listingRepository;
 
 	@Mock
-	private AuthUtils authUtils;
+	private MemberRepository memberRepository;
 
 	@InjectMocks
 	private WishlistService wishlistService;
@@ -85,9 +85,9 @@ class WishlistServiceTest {
 			// given
 			NewWishlistAddRequest request = new NewWishlistAddRequest(10L, "제주 여행");
 			Listing listing = listing(10L);
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(listingRepository.findById(10L)).willReturn(Optional.of(listing));
 			given(wishlistItemRepository.existsByMemberIdAndListingId(1L, 10L)).willReturn(false);
+			given(memberRepository.getReferenceById(1L)).willReturn(member);
 			given(wishlistRepository.save(any(Wishlist.class))).willAnswer(inv -> {
 				Wishlist saved = inv.getArgument(0);
 				ReflectionTestUtils.setField(saved, "id", 100L);
@@ -95,7 +95,7 @@ class WishlistServiceTest {
 			});
 
 			// when
-			NewWishlistAddResponse response = wishlistService.addItemInNewWishlist(request);
+			NewWishlistAddResponse response = wishlistService.addItemInNewWishlist(1L, request);
 
 			// then
 			assertThat(response.wishlistId()).isEqualTo(100L);
@@ -109,11 +109,10 @@ class WishlistServiceTest {
 		void throwsWhenListingNotFound() {
 			// given
 			NewWishlistAddRequest request = new NewWishlistAddRequest(99L, "이름");
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(listingRepository.findById(99L)).willReturn(Optional.empty());
 
 			// when & then
-			assertThatThrownBy(() -> wishlistService.addItemInNewWishlist(request))
+			assertThatThrownBy(() -> wishlistService.addItemInNewWishlist(1L, request))
 				.isInstanceOf(BusinessException.class)
 				.extracting(e -> ((BusinessException) e).getErrorCode())
 				.isEqualTo(ErrorCode.LISTING_NOT_FOUND);
@@ -126,12 +125,11 @@ class WishlistServiceTest {
 		void throwsWhenAlreadyExists() {
 			// given
 			NewWishlistAddRequest request = new NewWishlistAddRequest(10L, "이름");
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(listingRepository.findById(10L)).willReturn(Optional.of(listing(10L)));
 			given(wishlistItemRepository.existsByMemberIdAndListingId(1L, 10L)).willReturn(true);
 
 			// when & then
-			assertThatThrownBy(() -> wishlistService.addItemInNewWishlist(request))
+			assertThatThrownBy(() -> wishlistService.addItemInNewWishlist(1L, request))
 				.isInstanceOf(BusinessException.class)
 				.extracting(e -> ((BusinessException) e).getErrorCode())
 				.isEqualTo(ErrorCode.WISHLIST_ITEM_ALREADY_EXISTS);
@@ -153,13 +151,12 @@ class WishlistServiceTest {
 			ExistingWishlistAddRequest request = new ExistingWishlistAddRequest(10L);
 			Listing listing = listing(10L);
 			Wishlist wishlist = wishlist(5L, "기존 위시리스트");
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(listingRepository.findById(10L)).willReturn(Optional.of(listing));
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.of(wishlist));
 			given(wishlistItemRepository.existsByMemberIdAndListingId(1L, 10L)).willReturn(false);
 
 			// when
-			ExistingWishlistAddResponse response = wishlistService.addItemInExistingWishlist(5L, request);
+			ExistingWishlistAddResponse response = wishlistService.addItemInExistingWishlist(1L, 5L, request);
 
 			// then
 			assertThat(response.wishlistId()).isEqualTo(5L);
@@ -173,11 +170,10 @@ class WishlistServiceTest {
 		void throwsWhenListingNotFound() {
 			// given
 			ExistingWishlistAddRequest request = new ExistingWishlistAddRequest(99L);
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(listingRepository.findById(99L)).willReturn(Optional.empty());
 
 			// when & then
-			assertThatThrownBy(() -> wishlistService.addItemInExistingWishlist(5L, request))
+			assertThatThrownBy(() -> wishlistService.addItemInExistingWishlist(1L, 5L, request))
 				.isInstanceOf(BusinessException.class)
 				.extracting(e -> ((BusinessException) e).getErrorCode())
 				.isEqualTo(ErrorCode.LISTING_NOT_FOUND);
@@ -188,12 +184,11 @@ class WishlistServiceTest {
 		void throwsWhenWishlistNotOwned() {
 			// given
 			ExistingWishlistAddRequest request = new ExistingWishlistAddRequest(10L);
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(listingRepository.findById(10L)).willReturn(Optional.of(listing(10L)));
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.empty());
 
 			// when & then
-			assertThatThrownBy(() -> wishlistService.addItemInExistingWishlist(5L, request))
+			assertThatThrownBy(() -> wishlistService.addItemInExistingWishlist(1L, 5L, request))
 				.isInstanceOf(BusinessException.class)
 				.extracting(e -> ((BusinessException) e).getErrorCode())
 				.isEqualTo(ErrorCode.WISHLIST_NOT_FOUND);
@@ -205,13 +200,12 @@ class WishlistServiceTest {
 		void throwsWhenAlreadyExists() {
 			// given
 			ExistingWishlistAddRequest request = new ExistingWishlistAddRequest(10L);
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(listingRepository.findById(10L)).willReturn(Optional.of(listing(10L)));
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.of(wishlist(5L, "위시리스트")));
 			given(wishlistItemRepository.existsByMemberIdAndListingId(1L, 10L)).willReturn(true);
 
 			// when & then
-			assertThatThrownBy(() -> wishlistService.addItemInExistingWishlist(5L, request))
+			assertThatThrownBy(() -> wishlistService.addItemInExistingWishlist(1L, 5L, request))
 				.isInstanceOf(BusinessException.class)
 				.extracting(e -> ((BusinessException) e).getErrorCode())
 				.isEqualTo(ErrorCode.WISHLIST_ITEM_ALREADY_EXISTS);
@@ -230,11 +224,10 @@ class WishlistServiceTest {
 		void deletesWishlist() {
 			// given
 			Wishlist wishlist = wishlist(5L, "삭제될 위시리스트");
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.of(wishlist));
 
 			// when
-			wishlistService.deleteWishlist(5L);
+			wishlistService.deleteWishlist(1L, 5L);
 
 			// then
 			then(wishlistRepository).should(times(1)).delete(wishlist);
@@ -244,11 +237,10 @@ class WishlistServiceTest {
 		@DisplayName("본인 소유가 아니면 WISHLIST_NOT_FOUND 예외가 발생한다")
 		void throwsWhenNotOwned() {
 			// given
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.empty());
 
 			// when & then
-			assertThatThrownBy(() -> wishlistService.deleteWishlist(5L))
+			assertThatThrownBy(() -> wishlistService.deleteWishlist(1L, 5L))
 				.isInstanceOf(BusinessException.class)
 				.extracting(e -> ((BusinessException) e).getErrorCode())
 				.isEqualTo(ErrorCode.WISHLIST_NOT_FOUND);
@@ -268,12 +260,11 @@ class WishlistServiceTest {
 			// given
 			Wishlist wishlist = wishlist(5L, "위시리스트");
 			WishlistItem item = wishlistItem(wishlist, listing(10L), "메모");
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.of(wishlist));
 			given(wishlistItemRepository.findByWishlist_IdAndListing_Id(5L, 10L)).willReturn(Optional.of(item));
 
 			// when
-			wishlistService.deleteItemInWishlist(5L, 10L);
+			wishlistService.deleteItemInWishlist(1L, 5L, 10L);
 
 			// then
 			then(wishlistItemRepository).should(times(1)).delete(item);
@@ -283,11 +274,10 @@ class WishlistServiceTest {
 		@DisplayName("본인 소유 위시리스트가 아니면 WISHLIST_NOT_FOUND 예외가 발생한다")
 		void throwsWhenWishlistNotOwned() {
 			// given
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.empty());
 
 			// when & then
-			assertThatThrownBy(() -> wishlistService.deleteItemInWishlist(5L, 10L))
+			assertThatThrownBy(() -> wishlistService.deleteItemInWishlist(1L, 5L, 10L))
 				.isInstanceOf(BusinessException.class)
 				.extracting(e -> ((BusinessException) e).getErrorCode())
 				.isEqualTo(ErrorCode.WISHLIST_NOT_FOUND);
@@ -299,12 +289,11 @@ class WishlistServiceTest {
 		void throwsWhenItemNotFound() {
 			// given
 			Wishlist wishlist = wishlist(5L, "위시리스트");
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.of(wishlist));
 			given(wishlistItemRepository.findByWishlist_IdAndListing_Id(5L, 10L)).willReturn(Optional.empty());
 
 			// when & then
-			assertThatThrownBy(() -> wishlistService.deleteItemInWishlist(5L, 10L))
+			assertThatThrownBy(() -> wishlistService.deleteItemInWishlist(1L, 5L, 10L))
 				.isInstanceOf(BusinessException.class)
 				.extracting(e -> ((BusinessException) e).getErrorCode())
 				.isEqualTo(ErrorCode.WISHLIST_ITEM_NOT_FOUND);
@@ -323,11 +312,10 @@ class WishlistServiceTest {
 		void updatesName() {
 			// given
 			Wishlist wishlist = wishlist(5L, "옛 이름");
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.of(wishlist));
 
 			// when
-			WishlistPatchResponse response = wishlistService.patchWishlist(5L, new WishlistPatchRequest("새 이름"));
+			WishlistPatchResponse response = wishlistService.patchWishlist(1L, 5L, new WishlistPatchRequest("새 이름"));
 
 			// then
 			assertThat(response.id()).isEqualTo(5L);
@@ -339,11 +327,10 @@ class WishlistServiceTest {
 		@DisplayName("본인 소유가 아니면 WISHLIST_NOT_FOUND 예외가 발생한다")
 		void throwsWhenNotOwned() {
 			// given
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.empty());
 
 			// when & then
-			assertThatThrownBy(() -> wishlistService.patchWishlist(5L, new WishlistPatchRequest("새 이름")))
+			assertThatThrownBy(() -> wishlistService.patchWishlist(1L, 5L, new WishlistPatchRequest("새 이름")))
 				.isInstanceOf(BusinessException.class)
 				.extracting(e -> ((BusinessException) e).getErrorCode())
 				.isEqualTo(ErrorCode.WISHLIST_NOT_FOUND);
@@ -362,13 +349,12 @@ class WishlistServiceTest {
 			// given
 			Wishlist wishlist = wishlist(5L, "위시리스트");
 			WishlistItem item = wishlistItem(wishlist, listing(10L), "옛 메모");
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.of(wishlist));
 			given(wishlistItemRepository.findByWishlist_IdAndListing_Id(5L, 10L)).willReturn(Optional.of(item));
 
 			// when
 			WishlistItemPatchResponse response =
-				wishlistService.patchItemInWishlist(5L, 10L, new WishlistItemPatchRequest("새 메모"));
+				wishlistService.patchItemInWishlist(1L, 5L, 10L, new WishlistItemPatchRequest("새 메모"));
 
 			// then
 			assertThat(response.wishlistId()).isEqualTo(5L);
@@ -383,13 +369,12 @@ class WishlistServiceTest {
 			// given
 			Wishlist wishlist = wishlist(5L, "위시리스트");
 			WishlistItem item = wishlistItem(wishlist, listing(10L), "옛 메모");
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.of(wishlist));
 			given(wishlistItemRepository.findByWishlist_IdAndListing_Id(5L, 10L)).willReturn(Optional.of(item));
 
 			// when
 			WishlistItemPatchResponse response =
-				wishlistService.patchItemInWishlist(5L, 10L, new WishlistItemPatchRequest(""));
+				wishlistService.patchItemInWishlist(1L, 5L, 10L, new WishlistItemPatchRequest(""));
 
 			// then
 			assertThat(response.note()).isEmpty();
@@ -401,12 +386,11 @@ class WishlistServiceTest {
 		void throwsWhenItemNotFound() {
 			// given
 			Wishlist wishlist = wishlist(5L, "위시리스트");
-			given(authUtils.getCurrentMember()).willReturn(member);
 			given(wishlistRepository.findByIdAndMember_Id(5L, 1L)).willReturn(Optional.of(wishlist));
 			given(wishlistItemRepository.findByWishlist_IdAndListing_Id(5L, 10L)).willReturn(Optional.empty());
 
 			// when & then
-			assertThatThrownBy(() -> wishlistService.patchItemInWishlist(5L, 10L, new WishlistItemPatchRequest("메모")))
+			assertThatThrownBy(() -> wishlistService.patchItemInWishlist(1L, 5L, 10L, new WishlistItemPatchRequest("메모")))
 				.isInstanceOf(BusinessException.class)
 				.extracting(e -> ((BusinessException) e).getErrorCode())
 				.isEqualTo(ErrorCode.WISHLIST_ITEM_NOT_FOUND);
