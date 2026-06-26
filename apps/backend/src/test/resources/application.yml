@@ -2,7 +2,31 @@ kakao:
   rest-api:
     key: test-placeholder
 
+cors:
+  allowed-origins: http://localhost:5173
+
+# 인증/JWT 테스트용 설정 (운영 값과 무관한 고정 더미)
+jwt:
+  secret: test-secret-key-for-integration-tests-please-do-not-use-in-prod-1234567890
+  access-token-validity-seconds: 1800
+  refresh-token-validity-seconds: 1209600
+
+app:
+  oauth2:
+    success-redirect-uri: http://localhost:5173/
+    failure-redirect-uri: http://localhost:5173/?login_error=true
+
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            scope:
+              - email
+              - profile
   flyway:
     enabled: false
   jpa:

@@ -25,6 +25,6 @@ public class LoginArgumentResolver implements HandlerMethodArgumentResolver {
 	public CurrentMemberInfo resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
 		NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
 
-		return new CurrentMemberInfo(1L);
+		return new CurrentMemberInfo(authUtils.getCurrentMember().getId());
 	}
 }

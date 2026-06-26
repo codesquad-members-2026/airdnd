@@ -8,7 +8,10 @@ export default defineConfig({
     lint: "eslint",
   },
   plugins: [
-    "@hey-api/client-fetch",
+    {
+      name: "@hey-api/client-fetch",
+      runtimeConfigPath: "../hey-api",
+    },
     {
       name: "@hey-api/sdk",
       operationId: true,

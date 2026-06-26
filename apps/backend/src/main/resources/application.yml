@@ -12,8 +12,34 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
-        formant_sql: true
+        format_sql: true
+        default_batch_fetch_size: 100
   flyway:
     enabled: true
     baseline-on-migrate: true
     out-of-order: true
+  jackson:
+    deserialization:
+      adjust-dates-to-context-time-zone: false
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:placeholder}
+            client-secret: ${GOOGLE_CLIENT_SECRET:placeholder}
+            scope:
+              - email
+              - profile
+
+# JWT 자체 발급 토큰 설정 (운영에서는 JWT_SECRET을 반드시 환경변수로 주입)
+jwt:
+  secret: ${JWT_SECRET:dev-only-secret-key-please-override-with-32byte-or-longer-value!!}
+  access-token-validity-seconds: 1800       # 30분
+  refresh-token-validity-seconds: 1209600   # 14일
+
+# OAuth2 로그인 성공/실패 후 SPA로 되돌아갈 프론트 경로
+app:
+  oauth2:
+    success-redirect-uri: ${app.frontend-url:http://localhost:5173}/
+    failure-redirect-uri: ${app.frontend-url:http://localhost:5173}/?login_error=true

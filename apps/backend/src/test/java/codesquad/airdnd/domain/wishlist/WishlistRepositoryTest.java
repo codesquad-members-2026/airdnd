@@ -137,12 +137,16 @@ class WishlistRepositoryTest {
 	// ===== findDetailItem =====
 
 	@Test
-	@DisplayName("숙소 정보와 이미지를 cover 우선, sortOrder 순으로 반환한다")
+	@DisplayName("숙소 정보와 이미지를 sortOrder 순으로 반환한다")
 	void findDetailItem_returnsListingInfoWithImagesOrdered() {
 		// given
 		Listing listing = em.persist(buildListing("숙소", member));
-		em.persist(ListingImage.builder().listing(listing).imageUrl("normal").sortOrder(1).cover(false).build());
-		em.persist(ListingImage.builder().listing(listing).imageUrl("cover").sortOrder(2).cover(true).build());
+		ListingImage first = ListingImage.builder().imageUrl("first").sortOrder(1).build();
+		ListingImage second = ListingImage.builder().imageUrl("second").sortOrder(2).build();
+		first.assignListing(listing);
+		second.assignListing(listing);
+		em.persist(first);
+		em.persist(second);
 		em.flush();
 
 		// when
@@ -152,7 +156,7 @@ class WishlistRepositoryTest {
 		// then
 		assertThat(result).hasSize(2);
 		assertThat(result).extracting(WishlistDetailItemQueryResult::imageUrl)
-			.containsExactly("cover", "normal");
+			.containsExactly("first", "second");
 		assertThat(result.get(0).listingId()).isEqualTo(listing.getId());
 		assertThat(result.get(0).listingName()).isEqualTo("숙소");
 		assertThat(result.get(0).pricePerNight()).isEqualByComparingTo(BigDecimal.valueOf(50000));

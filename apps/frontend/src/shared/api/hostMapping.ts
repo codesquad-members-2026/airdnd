@@ -1,11 +1,12 @@
-import type { HostListingSummary, ListingCreateRequest as ApiCreateRequest, Member } from './generated/types.gen';
+import type { HostListingSummary, ListingCreateRequest as ApiCreateRequest, CurrentMemberInfo } from './generated/types.gen';
 import type { HostListing, ListingFormData, RoomType } from '../../types';
 
 /**
  * @Login은 서버에서 세션으로 처리되지만 OpenAPI 스펙에 쿼리 파라미터로 잘못 노출됨.
- * 생성된 타입을 만족시키기 위한 빈 객체 스텁 - 백엔드가 이 값을 무시함.
+ * 빈 객체 스텁 - 백엔드가 값을 무시한다. 반드시 빈 객체여야 한다(값을 넣으면
+ * `memberInfo[id]=...` 대괄호 쿼리가 생겨 Tomcat이 400으로 거부함).
  */
-export const HOST_STUB = {} as Member;
+export const HOST_STUB = {} as CurrentMemberInfo;
 
 export const ROOM_TYPE_FROM_API: Record<string, RoomType> = {
   ENTIRE_PLACE: '집 전체',
@@ -53,7 +54,7 @@ export function toHostListing(s: HostListingSummary): HostListing {
     beds: s.capacity?.beds ?? 0,
     bathrooms: s.capacity?.bathrooms ?? 0,
     amenities: [],
-    imageUrls: [],
+    imageUrls: s.coverImage ? [s.coverImage] : [],
     active: s.state === 'APPROVED',
     state: s.state,
   };
@@ -73,6 +74,8 @@ export function toCreateRequest(form: ListingFormData): ApiCreateRequest {
     bedrooms: form.bedrooms,
     beds: form.beds,
     bathrooms: form.bathrooms,
+    // 배열 순서 = 등록 시 순서(sort_order), 0번 = 커버
+    images: form.imageUrls.filter(u => u.trim()),
     description: form.description,
     pricePerNight: Math.round(form.price * 100) / 100,
     amenities: form.amenities

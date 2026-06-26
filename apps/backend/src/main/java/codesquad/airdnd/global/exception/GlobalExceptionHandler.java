@@ -7,7 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import codesquad.airdnd.global.ApiResponse;
+import codesquad.airdnd.global.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -33,6 +33,8 @@ public class GlobalExceptionHandler {
 			.status(errorCode.getHttpStatus())
 			.body(ApiResponse.error(errorCode, errors));
 	}
+    
+    // TODO: Validated 예외도 추가 필요
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
