@@ -7,6 +7,9 @@ interface KakaoLatLng {
 
 interface KakaoMap {
   getCenter(): KakaoLatLng;
+  getLevel(): number;
+  setLevel(level: number, options?: { animate?: boolean | { duration?: number } }): void;
+  setZoomable(zoomable: boolean): void;
 }
 
 declare global {
@@ -33,6 +36,15 @@ declare global {
           options: { center: KakaoLatLng; level: number }
         ) => KakaoMap;
         LatLng: new (lat: number, lng: number) => KakaoLatLng;
+        Marker: new (options: { map?: KakaoMap; position: KakaoLatLng }) => unknown;
+        CustomOverlay: new (options: {
+          map?: KakaoMap;
+          position: KakaoLatLng;
+          content: string | HTMLElement;
+          xAnchor?: number;
+          yAnchor?: number;
+          zIndex?: number;
+        }) => unknown;
         event: {
           addListener(target: unknown, type: string, callback: () => void): void;
         };

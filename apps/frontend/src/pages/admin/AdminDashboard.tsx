@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HostHeader } from '../../components/HostHeader';
 import { Icon } from '../../shared/Icon';
 import { won } from '../../shared/utils';
@@ -88,11 +89,9 @@ const NAV_ITEMS: { key: AdminTab; label: string; icon: string }[] = [
 ];
 
 // ─── Root Component ───────────────────────────────────────────────────────────
-interface AdminDashboardProps {
-  onLogo: () => void;
-}
-
-export function AdminDashboard({ onLogo }: AdminDashboardProps) {
+export function AdminDashboard() {
+  const navigate = useNavigate();
+  const onLogo = () => navigate('/');
   const [tab, setTab] = useState<AdminTab>('overview');
   const [users, setUsers] = useState<AdminUser[]>(MOCK_USERS);
   const [listings, setListings] = useState<AdminListing[]>(MOCK_ADMIN_LISTINGS);

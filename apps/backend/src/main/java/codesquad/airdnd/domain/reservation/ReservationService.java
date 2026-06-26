@@ -1,5 +1,8 @@
 package codesquad.airdnd.domain.reservation;
 
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -7,16 +10,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import codesquad.airdnd.domain.listing.ListingRepository;
+import codesquad.airdnd.domain.listing.entity.Address;
 import codesquad.airdnd.domain.listing.entity.Listing;
 import codesquad.airdnd.domain.member.Member;
 import codesquad.airdnd.domain.member.MemberRepository;
 import codesquad.airdnd.domain.reservation.dto.request.CreateReservationRequest;
+import codesquad.airdnd.domain.reservation.dto.response.CancelPreview;
+import codesquad.airdnd.domain.reservation.dto.response.ReservationDetailResponse;
 import codesquad.airdnd.domain.reservation.dto.response.ReservationSummary;
+import codesquad.airdnd.domain.reservation.dto.response.UpcomingReservationResponse;
 import codesquad.airdnd.domain.reservation.entity.GuestCounts;
 import codesquad.airdnd.domain.reservation.entity.Reservation;
 import codesquad.airdnd.domain.reservation.entity.ReservationDate;
 import codesquad.airdnd.global.exception.BusinessException;
 import codesquad.airdnd.global.exception.ErrorCode;
+import codesquad.airdnd.global.region.RegionCodeService;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -27,6 +35,10 @@ public class ReservationService {
 
 	private final ListingRepository listingRepository;
 	private final MemberRepository memberRepository;
+
+	private final RegionCodeService regionCodeService;
+
+	private final Clock clock;
 
 	@Transactional
 	public ReservationSummary createReservation(
@@ -61,5 +73,67 @@ public class ReservationService {
 		}
 
 		return ReservationSummary.from(reservation);
+	}
+
+	@Transactional(readOnly = true)
+	public UpcomingReservationResponse getUpcomingReservations(Long userId) {
+		List<Reservation> upcoming = resRepository.findUpcoming(userId, LocalDate.now(clock));
+
+		List<ReservationSummary> list = upcoming.stream()
+			.map(this::toSummary)
+			.toList();
+		return new UpcomingReservationResponse(list);
+	}
+
+	@Transactional(readOnly = true)
+	public ReservationDetailResponse getReservationDetail(Long userId, Long reservationId) {
+		Reservation reservation = resRepository.findDetailById(reservationId)
+			.orElseThrow(() -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
+
+		Address address = reservation.getListing().getAddress();
+		String addressSummary = regionCodeService.getAddressSummary(address.getSidoCode(), address.getSigunguCode());
+
+		if (reservation.isOwnedBy(userId)) {
+			return ReservationDetailResponse.forGuest(reservation, addressSummary);
+		} else {
+			throw new BusinessException(ErrorCode.NOT_RESERVATION_OWNER);
+		}
+	}
+
+	public CancelPreview getCancelPreview(Long guestId, Long reservationId) {
+		Reservation reservation = getOwnedReservation(guestId, reservationId);
+
+		// 환불액 계산 로직
+		BigDecimal refundAmount = reservation.getTotalPrice();
+
+		return new CancelPreview(refundAmount);
+	}
+
+	@Transactional
+	public void cancelReservation(Long guestId, Long reservationId) {
+		Reservation reservation = getOwnedReservation(guestId, reservationId);
+
+		reservation.cancelByGuest();
+		resDateRepository.deleteByReservationId(reservationId);
+
+		// 환불 로직
+		// paymentService.refund();
+	}
+
+	private Reservation getOwnedReservation(Long guestId, Long reservationId) {
+		Reservation reservation = resRepository.findById(reservationId)
+			.orElseThrow(() -> new BusinessException(ErrorCode.RESERVATION_NOT_FOUND));
+
+		if (!reservation.isOwnedBy(guestId)) {
+			throw new BusinessException(ErrorCode.NOT_RESERVATION_OWNER);
+		}
+
+		return reservation;
+	}
+
+	private ReservationSummary toSummary(Reservation r) {
+		Address address = r.getListing().getAddress();
+		String region = regionCodeService.getAddressSummary(address.getSidoCode(), address.getSigunguCode());
+		return ReservationSummary.from(r, region);
 	}
 }

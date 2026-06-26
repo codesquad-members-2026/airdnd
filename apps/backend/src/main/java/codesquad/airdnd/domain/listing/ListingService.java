@@ -118,7 +118,7 @@ public class ListingService {
 
 	private Listing findById(Long listingId) {
 		return listingRepository.findById(listingId)
-			.orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR));
+			.orElseThrow(() -> new BusinessException(ErrorCode.LISTING_NOT_FOUND));
 	}
 
 	private void validateOwner(Listing listing, Member host) {

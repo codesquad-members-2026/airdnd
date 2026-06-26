@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HostHeader } from '../../components/HostHeader';
 import { Icon } from '../../shared/Icon';
 import { ConfirmDeleteWishlistModal } from '../../components/ConfirmDeleteWishlistModal';
 import { deleteWishlist, ApiError } from '../../shared/api/wishlist';
 import type { WishlistSummary } from '../../types';
 
-interface WishlistPageProps {
-  onLogo: () => void;
-  onHosting?: () => void;
-  onOpenWishlist?: (id: number) => void;
-}
-
-export function WishlistPage({ onLogo, onHosting, onOpenWishlist }: WishlistPageProps) {
+export function WishlistPage() {
+  const navigate = useNavigate();
+  const onLogo = () => navigate('/');
+  const onHosting = () => navigate('/host');
+  const onOpenWishlist = (wishlistId: number) => navigate(`/wishlists/${wishlistId}`);
   const [wishlists, setWishlists] = useState<WishlistSummary[]>([]);
   const [loading, setLoading] = useState(true);
   // 삭제 확인 모달: 대상 위시리스트 + 제출/에러 상태

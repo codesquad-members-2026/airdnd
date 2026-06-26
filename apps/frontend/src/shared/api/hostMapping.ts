@@ -73,6 +73,8 @@ export function toCreateRequest(form: ListingFormData): ApiCreateRequest {
     bedrooms: form.bedrooms,
     beds: form.beds,
     bathrooms: form.bathrooms,
+    // 배열 순서 = 등록 시 순서(sort_order), 0번 = 커버
+    images: form.imageUrls.filter(u => u.trim()),
     description: form.description,
     pricePerNight: Math.round(form.price * 100) / 100,
     amenities: form.amenities

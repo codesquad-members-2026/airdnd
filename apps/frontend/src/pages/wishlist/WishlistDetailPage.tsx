@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { HostHeader } from '../../components/HostHeader';
 import { EditNoteModal } from '../../components/EditNoteModal';
 import { RenameWishlistModal } from '../../components/RenameWishlistModal';
@@ -14,14 +15,13 @@ import {
 } from '../../shared/api/wishlist';
 import type { WishlistDetail, WishlistDetailItem } from '../../types';
 
-interface WishlistDetailPageProps {
-  wishlistId: number;
-  onBack: () => void;
-  onLogo: () => void;
-  onHosting?: () => void;
-}
-
-export function WishlistDetailPage({ wishlistId, onBack, onLogo, onHosting }: WishlistDetailPageProps) {
+export function WishlistDetailPage() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const wishlistId = Number(id);
+  const onBack = () => navigate('/wishlists');
+  const onLogo = () => navigate('/');
+  const onHosting = () => navigate('/host');
   const [detail, setDetail] = useState<WishlistDetail | null>(null);
   const [loading, setLoading] = useState(true);
 

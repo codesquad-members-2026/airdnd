@@ -19,6 +19,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import codesquad.airdnd.domain.listing.entity.Address;
 import codesquad.airdnd.domain.listing.entity.Capacity;
 import codesquad.airdnd.domain.listing.entity.Listing;
+import codesquad.airdnd.domain.listing.entity.ListingImage;
 import codesquad.airdnd.domain.listing.entity.RoomType;
 import codesquad.airdnd.domain.member.Member;
 
@@ -105,7 +106,62 @@ class ListingRepositoryTest {
 		assertThat(otherResult).hasSize(2);
 	}
 
+	@Test
+	@DisplayName("숙소를 저장하면 이미지도 함께 저장되고 listing_id가 채워진다")
+	void save_cascadesImagesWithListingId() {
+		// given
+		Listing listing = buildListingWithImages("이미지 숙소", host, List.of("url1", "url2", "url3"));
+
+		// when
+		Listing saved = listingRepository.save(listing);
+		em.flush();
+		em.clear();
+
+		// then
+		Listing found = listingRepository.findById(saved.getId()).orElseThrow();
+		assertThat(found.getImages()).hasSize(3);
+		assertThat(found.getImages())
+			.allSatisfy(image -> assertThat(image.getListing().getId()).isEqualTo(found.getId()));
+		assertThat(found.getImages())
+			.extracting(ListingImage::getSortOrder)
+			.containsExactly(0, 1, 2);
+	}
+
+	@Test
+	@DisplayName("이미지를 컬렉션에서 제거하면 orphanRemoval로 삭제된다")
+	void removeImage_deletesOrphan() {
+		// given
+		Listing listing = buildListingWithImages("이미지 숙소", host, List.of("url1", "url2", "url3"));
+		Listing saved = listingRepository.save(listing);
+		em.flush();
+
+		// when
+		saved.getImages().remove(0);
+		em.flush();
+		em.clear();
+
+		// then
+		Listing found = listingRepository.findById(saved.getId()).orElseThrow();
+		assertThat(found.getImages()).hasSize(2);
+	}
+
 	// ===== helper =====
+
+	private Listing buildListingWithImages(String name, Member owner, List<String> imageUrls) {
+		return Listing.builder()
+			.name(name)
+			.roomType(RoomType.ENTIRE_PLACE)
+			.description("설명")
+			.address(new Address("서울 강남구 테헤란로 152", "101호", "06236",
+				point(37.5012, 127.0396),
+				"11", "11680"))
+			.host(owner)
+			.capacity(new Capacity(2, 1, 1, 1))
+			.pricePerNight(BigDecimal.valueOf(50000))
+			.amenities(Set.of())
+			.images(ListingImage.from(imageUrls))
+			.build();
+	}
 
 	private Listing buildListing(String name, Member owner) {
 		return Listing.builder()

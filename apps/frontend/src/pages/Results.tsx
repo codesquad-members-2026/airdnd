@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Icon } from '../shared/Icon';
 import { won } from '../shared/utils';
 import { SaveToWishlistModal } from '../components/SaveToWishlistModal';
-import type { Listing, SearchState } from '../types';
+import { useAppState } from '../shared/AppState';
+import type { Listing } from '../types';
 
 // TODO(API): 데모 LISTINGS엔 실제 listingId가 없어 임시로 매핑한다(인덱스 → listing id).
 // 백엔드 DB에 존재하는 listing id로 맞춰야 POST가 성공함. 없는 id면 404(LISTING_NOT_FOUND).
@@ -80,26 +82,24 @@ export const LISTINGS: Listing[] = [
   },
 ];
 
-interface ResultsProps {
-  search: SearchState;
-  onOpen: (l: Listing) => void;
-  onSearchPill: () => void;
-  onLogo: () => void;
-  onHosting: () => void;
-  onAdmin?: () => void;
-  onMyPage?: () => void;
-}
-
-export function Results({ search, onOpen, onSearchPill, onLogo, onHosting, onAdmin, onMyPage }: ResultsProps) {
+export function Results() {
+  const navigate = useNavigate();
+  const { search, setSelectedListing } = useAppState();
   const [liked, setLiked] = useState<Record<number, boolean>>({});
   // 하트 클릭 시 저장 모달을 띄울 대상 리스팅 인덱스 (null이면 닫힘)
   const [saveFor, setSaveFor] = useState<number | null>(null);
   // 저장 성공 토스트 메시지
   const [toast, setToast] = useState<string | null>(null);
 
+  const onOpen = (l: Listing) => {
+    setSelectedListing(l);
+    navigate(`/listings/${l.id}`);
+  };
+  const onSearchPill = () => navigate('/');
+
   return (
     <div>
-      <Header mode="compact" search={search} onSearchPill={onSearchPill} onLogo={onLogo} onHosting={onHosting} onAdmin={onAdmin} onMyPage={onMyPage} />
+      <Header mode="compact" search={search} onSearchPill={onSearchPill} />
       <div style={{ display: 'flex' }}>
         {/* Listing list */}
         <div

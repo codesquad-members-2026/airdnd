@@ -31,6 +31,9 @@ public enum ErrorCode {
 	// ===== Reservation =====
 	INVALID_RESERVATION_DATE(HttpStatus.BAD_REQUEST, "RESERVATION_001", "예약 날짜가 올바르지 않습니다."),
 	ALREADY_RESERVED(HttpStatus.CONFLICT, "RESERVATION_002", "선택하신 날짜는 이미 예약되었습니다."),
+	RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RESERVATION_003", "존재하지 않는 예약입니다."),
+	NOT_RESERVATION_OWNER(HttpStatus.FORBIDDEN, "RESERVATION_004","예약 접근 권한이 없습니다."),
+	RESERVATION_NOT_CANCELABLE(HttpStatus.CONFLICT, "RESERVATION_005", "현재 상태에서는 예약을 취소할 수 없습니다."),
 	;
 	private final HttpStatus httpStatus;
 	private final String code;
