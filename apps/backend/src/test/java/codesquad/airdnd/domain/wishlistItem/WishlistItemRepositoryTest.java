@@ -3,6 +3,7 @@ package codesquad.airdnd.domain.wishlistItem;
 import static org.assertj.core.api.Assertions.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -22,6 +23,7 @@ import codesquad.airdnd.domain.listing.entity.Listing;
 import codesquad.airdnd.domain.listing.entity.RoomType;
 import codesquad.airdnd.domain.member.Member;
 import codesquad.airdnd.domain.wishlist.entity.Wishlist;
+import codesquad.airdnd.domain.wishlistItem.dto.query.WishlistedListing;
 
 @DataJpaTest
 class WishlistItemRepositoryTest {
@@ -112,6 +114,65 @@ class WishlistItemRepositoryTest {
 
 		// then
 		assertThat(found).isEmpty();
+	}
+
+	@Test
+	@DisplayName("findWishlistId: 회원이 담은 숙소면 담긴 위시리스트 id를 반환한다")
+	void findWishlistId_present() {
+		// given
+		em.persist(WishlistItem.builder().wishlist(wishlist).listing(listing).build());
+		em.flush();
+
+		// when
+		Long found = wishlistItemRepository.findWishlistId(member.getId(), listing.getId());
+
+		// then
+		assertThat(found).isEqualTo(wishlist.getId());
+	}
+
+	@Test
+	@DisplayName("findWishlistId: 담지 않은 숙소면 null을 반환한다")
+	void findWishlistId_absent() {
+		// when
+		Long found = wishlistItemRepository.findWishlistId(member.getId(), listing.getId());
+
+		// then
+		assertThat(found).isNull();
+	}
+
+	@Test
+	@DisplayName("findWishlistId: 다른 회원이 담은 숙소는 해당 회원 기준 null을 반환한다")
+	void findWishlistId_scopedToMember() {
+		// given
+		em.persist(WishlistItem.builder().wishlist(wishlist).listing(listing).build());
+		em.flush();
+
+		// when
+		Long found = wishlistItemRepository.findWishlistId(otherMember.getId(), listing.getId());
+
+		// then
+		assertThat(found).isNull();
+	}
+
+	@Test
+	@DisplayName("findWishlistedPairs: 회원이 담은 숙소만 (listingId, wishlistId) 쌍으로 반환한다")
+	void findWishlistedPairs_returnsScopedPairs() {
+		// given - member 는 listing 을 담고, otherMember 는 listing2 를 담음. listing3 은 아무도 안 담음
+		Listing listing2 = em.persist(buildListing("숙소2", member));
+		Listing listing3 = em.persist(buildListing("숙소3", member));
+		Wishlist otherWishlist = em.persist(Wishlist.builder().member(otherMember).name("남의 위시리스트").build());
+		em.persist(WishlistItem.builder().wishlist(wishlist).listing(listing).build());
+		em.persist(WishlistItem.builder().wishlist(otherWishlist).listing(listing2).build());
+		em.flush();
+
+		// when - 조회 대상은 listing, listing2, listing3 전부 넘기지만 member 가 담은 건 listing 뿐
+		List<WishlistedListing> pairs = wishlistItemRepository.findWishlistedPairs(
+			member.getId(), List.of(listing.getId(), listing2.getId(), listing3.getId()));
+
+		// then
+		assertThat(pairs)
+			.extracting(WishlistedListing::listingId, WishlistedListing::wishlistId)
+			.containsExactly(tuple(listing.getId(), wishlist.getId()));
 	}
 
 	// ===== helper =====

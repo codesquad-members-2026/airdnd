@@ -50,6 +50,17 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 
+    // Spring Security
+    implementation("org.springframework.boot:spring-boot-starter-security")
+
+    // OAuth2 Client (Google 소셜 로그인)
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+
+    // JWT (jjwt 0.12.x) - 자체 발급 토큰
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+
 	// Test
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -60,16 +71,6 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
-def generated = 'src/main/generated'
-
-sourceSets {
-    main.java.srcDirs += [generated]
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.getGeneratedSourceOutputDirectory().set(file(generated))
-}
-
-clean.doLast {
-    delete file(generated)
+tasks.named('jar'){
+    enabled = false
 }

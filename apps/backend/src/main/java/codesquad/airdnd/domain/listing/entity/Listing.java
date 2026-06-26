@@ -1,10 +1,13 @@
 package codesquad.airdnd.domain.listing.entity;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import codesquad.airdnd.domain.member.Member;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -18,6 +21,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -57,9 +61,12 @@ public class Listing {
 	@Enumerated(value = EnumType.STRING)
 	private ListingState state;
 
+	@OneToMany(mappedBy = "listing", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST, orphanRemoval = true)
+	private List<ListingImage> images = new ArrayList<>();
+
 	@Builder
 	public Listing(String name, RoomType roomType, String description, Address address, Member host, Capacity capacity,
-		BigDecimal pricePerNight, Set<Amenity> amenities
+		BigDecimal pricePerNight, Set<Amenity> amenities, List<ListingImage> images
 	) {
 		this.name = name;
 		this.roomType = roomType;
@@ -70,6 +77,15 @@ public class Listing {
 		this.pricePerNight = pricePerNight;
 		this.amenities = amenities;
 		this.state = ListingState.PENDING;
+		this.images = new ArrayList<>();
+		if (images != null) {
+			images.forEach(this::addImage);
+		}
+	}
+
+	private void addImage(ListingImage image) {
+		images.add(image);
+		image.assignListing(this);
 	}
 
 	public void deactivate() {

@@ -1,12 +1,14 @@
 package codesquad.airdnd.domain.listing.dto.request;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 
 import codesquad.airdnd.domain.listing.entity.Address;
 import codesquad.airdnd.domain.listing.entity.Amenity;
 import codesquad.airdnd.domain.listing.entity.Capacity;
 import codesquad.airdnd.domain.listing.entity.Listing;
+import codesquad.airdnd.domain.listing.entity.ListingImage;
 import codesquad.airdnd.domain.listing.entity.RoomType;
 import codesquad.airdnd.domain.member.Member;
 import jakarta.validation.constraints.DecimalMax;
@@ -45,6 +47,8 @@ public record ListingCreateRequest(
 	@Min(value = 1, message = "침대 수는 1개 이상이어야 합니다.") int beds,
 	@Min(value = 0, message = "욕실 수는 0개 이상이어야 합니다.") int bathrooms,
 
+	@Size(min = 5, message = "숙소 이미지는 최소 5개 이상이어햐 합니다.") List<String> images,
+
 	String description,
 
 	@NotNull(message = "1박 요금을 입력해주세요.")
@@ -66,6 +70,7 @@ public record ListingCreateRequest(
 			.capacity(capacity)
 			.pricePerNight(pricePerNight)
 			.amenities(amenities)
+			.images(ListingImage.from(images))
 			.build();
 	}
 }
