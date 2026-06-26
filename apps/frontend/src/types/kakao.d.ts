@@ -1,15 +1,18 @@
 /** 카카오 우편번호 + 지도 JS SDK 타입 선언 */
 
-interface KakaoLatLng {
-  getLat(): number;
-  getLng(): number;
-}
-
-interface KakaoMap {
-  getCenter(): KakaoLatLng;
-}
-
 declare global {
+  interface KakaoLatLng {
+    getLat(): number;
+    getLng(): number;
+  }
+
+  interface KakaoMap {
+    getCenter(): KakaoLatLng;
+    getLevel(): number;
+    setLevel(level: number, options?: { animate?: boolean | { duration?: number } }): void;
+    setZoomable(zoomable: boolean): void;
+  }
+
   interface Window {
     kakao: {
       /** 우편번호 서비스 */
@@ -33,6 +36,15 @@ declare global {
           options: { center: KakaoLatLng; level: number }
         ) => KakaoMap;
         LatLng: new (lat: number, lng: number) => KakaoLatLng;
+        Marker: new (options: { map?: KakaoMap; position: KakaoLatLng }) => unknown;
+        CustomOverlay: new (options: {
+          map?: KakaoMap;
+          position: KakaoLatLng;
+          content: string | HTMLElement;
+          xAnchor?: number;
+          yAnchor?: number;
+          zIndex?: number;
+        }) => unknown;
         event: {
           addListener(target: unknown, type: string, callback: () => void): void;
         };

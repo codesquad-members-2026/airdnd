@@ -6,8 +6,12 @@
   padding: 0;
 }
 
-html, body, #root {
-  height: 100%;
+html {
+  scrollbar-gutter: stable;
+}
+
+body, #root {
+  min-height: 100vh;
 }
 
 body {
@@ -139,6 +143,28 @@ h1, h2, h3 {
 
 .popover-enter { animation: popover-in 280ms ease forwards; }
 
+/* Payment spinner */
+@keyframes pay-spin { to { transform: rotate(360deg); } }
+.pay-spinner {
+  border-radius: 50%;
+  border: 5px solid var(--line);
+  border-top-color: var(--brand-coral);
+  animation: pay-spin 0.8s linear infinite;
+}
+/* Success check pop */
+@keyframes pay-pop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.pay-pop { animation: pay-pop 360ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
+
+/* Step expand/collapse reveal */
+@keyframes step-reveal {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.step-reveal { animation: step-reveal 420ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
 /* Price range input */
 .price-range {
   -webkit-appearance: none;

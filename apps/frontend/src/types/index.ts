@@ -76,7 +76,7 @@ export interface ListingFormData {
   imageUrls: string[];
 }
 
-export type View = 'home' | 'results' | 'detail' | 'host-dashboard' | 'host-new' | 'host-edit' | 'admin' | 'mypage' | 'wishlists' | 'wishlist-detail';
+export type View = 'home' | 'results' | 'detail' | 'checkout' | 'stay-pending' | 'trips' | 'host-dashboard' | 'host-new' | 'host-edit' | 'admin' | 'mypage' | 'wishlist-detail' | 'wishlists';
 
 export interface WishlistSummary {
   id: number;

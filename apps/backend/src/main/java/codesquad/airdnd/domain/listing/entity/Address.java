@@ -32,4 +32,9 @@ public class Address {
 	public Double getLongitude() {
 		return latLng == null ? null : latLng.getX();
 	}
+
+	public String getDetail() {
+		return String.format("%s %s %s", roadAddress, detailAddress, postalCode);
+
+	}
 }

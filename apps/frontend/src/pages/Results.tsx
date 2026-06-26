@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { Icon } from '../shared/Icon';
 import { won } from '../shared/utils';
 import { SaveToWishlistModal } from '../components/SaveToWishlistModal';
-import type { Listing, SearchState } from '../types';
+import { removeWishlistItem } from '../shared/api/wishlist';
+import { useAppState } from '../shared/AppState';
+import type { Listing } from '../types';
 
 // TODO(API): 데모 LISTINGS엔 실제 listingId가 없어 임시로 매핑한다(인덱스 → listing id).
 // 백엔드 DB에 존재하는 listing id로 맞춰야 POST가 성공함. 없는 id면 404(LISTING_NOT_FOUND).
@@ -80,26 +83,57 @@ export const LISTINGS: Listing[] = [
   },
 ];
 
-interface ResultsProps {
-  search: SearchState;
-  onOpen: (l: Listing) => void;
-  onSearchPill: () => void;
-  onLogo: () => void;
-  onHosting: () => void;
-  onAdmin?: () => void;
-  onMyPage?: () => void;
-}
-
-export function Results({ search, onOpen, onSearchPill, onLogo, onHosting, onAdmin, onMyPage }: ResultsProps) {
+export function Results() {
+  const navigate = useNavigate();
+  const { search, setSelectedListing } = useAppState();
   const [liked, setLiked] = useState<Record<number, boolean>>({});
+  // 저장된 위시리스트 id (인덱스 → wishlistId) — unlike 시 DELETE 대상
+  const [savedAt, setSavedAt] = useState<Record<number, number>>({});
   // 하트 클릭 시 저장 모달을 띄울 대상 리스팅 인덱스 (null이면 닫힘)
   const [saveFor, setSaveFor] = useState<number | null>(null);
   // 저장 성공 토스트 메시지
   const [toast, setToast] = useState<string | null>(null);
 
+  const showToast = (msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 2200);
+  };
+
+  // 하트 클릭: 이미 저장돼 있으면 DELETE, 아니면 저장 모달 열기
+  const onHeart = (i: number) => {
+    if (!liked[i]) {
+      setSaveFor(i);
+      return;
+    }
+    const wishlistId = savedAt[i];
+    const listingId = DEMO_LISTING_IDS[i];
+    if (wishlistId == null || listingId == null) return;
+    // 낙관적 해제 → 실패 시 롤백
+    setLiked((prev) => ({ ...prev, [i]: false }));
+    removeWishlistItem(wishlistId, listingId)
+      .then(() => {
+        setSavedAt((prev) => {
+          const next = { ...prev };
+          delete next[i];
+          return next;
+        });
+        showToast('위시리스트에서 삭제했어요');
+      })
+      .catch(() => {
+        setLiked((prev) => ({ ...prev, [i]: true }));
+        showToast('삭제에 실패했어요');
+      });
+  };
+
+  const onOpen = (l: Listing) => {
+    setSelectedListing(l);
+    navigate(`/listings/${l.id}`);
+  };
+  const onSearchPill = () => navigate('/');
+
   return (
     <div>
-      <Header mode="compact" search={search} onSearchPill={onSearchPill} onLogo={onLogo} onHosting={onHosting} onAdmin={onAdmin} onMyPage={onMyPage} />
+      <Header mode="compact" search={search} onSearchPill={onSearchPill} />
       <div style={{ display: 'flex' }}>
         {/* Listing list */}
         <div
@@ -155,7 +189,7 @@ export function Results({ search, onOpen, onSearchPill, onLogo, onHosting, onAdm
                   <span
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSaveFor(i);
+                      onHeart(i);
                     }}
                     style={{ cursor: 'pointer', padding: 4 }}
                   >
@@ -294,11 +328,13 @@ export function Results({ search, onOpen, onSearchPill, onLogo, onHosting, onAdm
         open={saveFor !== null}
         listingId={saveFor !== null ? DEMO_LISTING_IDS[saveFor] ?? null : null}
         onClose={() => setSaveFor(null)}
-        onSaved={(wishlistName) => {
-          if (saveFor !== null) setLiked((prev) => ({ ...prev, [saveFor]: true }));
+        onSaved={(wishlistName, wishlistId) => {
+          if (saveFor !== null) {
+            setLiked((prev) => ({ ...prev, [saveFor]: true }));
+            setSavedAt((prev) => ({ ...prev, [saveFor]: wishlistId }));
+          }
           setSaveFor(null);
-          setToast(`'${wishlistName}'에 저장했어요`);
-          window.setTimeout(() => setToast(null), 2200);
+          showToast(`'${wishlistName}'에 저장했어요`);
         }}
       />
 

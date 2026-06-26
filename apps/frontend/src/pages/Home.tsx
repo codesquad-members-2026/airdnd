@@ -1,6 +1,7 @@
+import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { SearchBar } from '../components/SearchBar';
-import type { SearchState } from '../types';
+import { useAppState } from '../shared/AppState';
 
 import heroImg from '../assets/hero-illustration.jpg';
 import categoryNature from '../assets/category-nature.png';
@@ -45,16 +46,11 @@ const FOOTER_COLS: [string, string[]][] = [
   ['지원', ['코로나19 대응 방안', '도움말 센터', '예약 취소 옵션', '이웃 민원 지원', '신뢰와 안전']],
 ];
 
-interface HomeProps {
-  search: SearchState;
-  onChange: (v: SearchState) => void;
-  onSearch: () => void;
-  onHosting: () => void;
-  onAdmin?: () => void;
-  onMyPage?: () => void;
-}
-
-export function Home({ search, onChange, onSearch, onHosting, onAdmin, onMyPage }: HomeProps) {
+export function Home() {
+  const navigate = useNavigate();
+  const { search, setSearch } = useAppState();
+  const onChange = setSearch;
+  const onSearch = () => navigate('/results');
   return (
     <div>
       {/* Hero */}
@@ -66,7 +62,7 @@ export function Home({ search, onChange, onSearch, onHosting, onAdmin, onMyPage 
             background: `url(${ASSET_MAP.hero}) center/cover`,
           }}
         />
-        <Header mode="full" onLogo={() => {}} onHosting={onHosting} onAdmin={onAdmin} onMyPage={onMyPage} />
+        <Header mode="full" />
         <div
           style={{
             position: 'absolute',

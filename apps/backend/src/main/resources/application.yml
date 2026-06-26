@@ -17,3 +17,6 @@ spring:
     enabled: true
     baseline-on-migrate: true
     out-of-order: true
+  jackson:
+    deserialization:
+      adjust-dates-to-context-time-zone: false

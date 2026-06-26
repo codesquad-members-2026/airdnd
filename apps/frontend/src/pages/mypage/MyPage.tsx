@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HostHeader } from '../../components/HostHeader';
 import { Icon } from '../../shared/Icon';
 import { won } from '../../shared/utils';
@@ -92,13 +93,11 @@ const NAV_ITEMS: { key: MyPageTab; label: string }[] = [
 ];
 
 // ─── Root Component ───────────────────────────────────────────────────────────
-interface MyPageProps {
-  onLogo: () => void;
-  onHosting?: () => void;
-  onWishlists?: () => void;
-}
-
-export function MyPage({ onLogo, onHosting, onWishlists }: MyPageProps) {
+export function MyPage() {
+  const navigate = useNavigate();
+  const onLogo = () => navigate('/');
+  const onHosting = () => navigate('/host');
+  const onWishlists = () => navigate('/wishlists');
   const [tab, setTab] = useState<MyPageTab>('profile');
 
   return (

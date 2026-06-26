@@ -31,7 +31,24 @@ public enum ErrorCode {
 	// ===== Reservation =====
 	INVALID_RESERVATION_DATE(HttpStatus.BAD_REQUEST, "RESERVATION_001", "예약 날짜가 올바르지 않습니다."),
 	ALREADY_RESERVED(HttpStatus.CONFLICT, "RESERVATION_002", "선택하신 날짜는 이미 예약되었습니다."),
-	;
+    RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RESERVATION_003", "존재하지 않는 예약입니다."),
+    NOT_RESERVATION_OWNER(HttpStatus.FORBIDDEN, "RESERVATION_004","예약 접근 권한이 없습니다."),
+    RESERVATION_NOT_CANCELABLE(HttpStatus.CONFLICT, "RESERVATION_005", "현재 상태에서는 예약을 취소할 수 없습니다."),
+    NOT_PENDING_RESERVATION(HttpStatus.CONFLICT, "RESERVATION_006", "취소되었거나 이미 확정된 예약입니다."),
+
+    // ===== Payment =====
+    ALREADY_IN_PROGRESS_PAYMENT(HttpStatus.CONFLICT, "PAYMENT_001", "이미 진행중인 결제입니다."),
+    NOT_FOUND_PAYMENT(HttpStatus.NOT_FOUND, "PAYMENT_002", "결제 정보를 찾을 수 없습니다."),
+    NOT_READY_PAYMENT(HttpStatus.CONFLICT, "PAYMENT_003", "이미 완료 혹은 취소된 결제입니다."),
+    NOT_EQUAL_INFO_PAYMENT(HttpStatus.CONFLICT, "PAYMENT_004", "결제 정보가 일치하지 않습니다."),
+    CONFIRM_FAILED_PAYMENT(HttpStatus.BAD_GATEWAY, "PAYMENT_005", "결제 도중 문제가 생겼습니다."),
+    NOT_OWNER_PAYMENT(HttpStatus.FORBIDDEN, "PAYMENT_006", "해당 결제에 접근 권한이 없습니다."),
+    ALREADY_DONE_PAYMENT(HttpStatus.CONFLICT, "PAYMENT_007", "이미 결제된 예약입니다. 환불 페이지로 이동해주세요."),
+    NOT_DONE_PAYMENT(HttpStatus.CONFLICT, "PAYMENT_008", "결제되지 않은 예약입니다."),
+    REFUND_FAILED_PAYMENT(HttpStatus.BAD_GATEWAY, "PAYMENT_009", "환불 도중 문제가 생겼습니다."),
+    NOT_EQUAL_REFUND_AMOUNT_PAYMENT(HttpStatus.CONFLICT, "PAYMENT_010", "환불 금액이 일치하지 않습니다."),
+    ALREADY_REFUNDED_PAYMENT(HttpStatus.CONFLICT, "PAYMENT_011", "이미 환불되었습니다."),
+    ;
 	private final HttpStatus httpStatus;
 	private final String code;
 	private final String message;

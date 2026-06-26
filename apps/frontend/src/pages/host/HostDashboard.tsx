@@ -1,6 +1,14 @@
+import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
 import { HostHeader } from '../../components/HostHeader';
 import { Icon } from '../../shared/Icon';
 import { won } from '../../shared/utils';
+import { useHostListings } from '../../shared/useHostListings';
+import {
+  activateListingMutation,
+  deactivateListingMutation,
+} from '../../shared/api/generated/@tanstack/react-query.gen';
+import { HOST_STUB } from '../../shared/api/hostMapping';
 import type { HostListing, ListingState } from '../../types';
 
 import listing1 from '../../assets/listing-1.png';
@@ -17,16 +25,36 @@ const STATE_BADGE: Record<ListingState, { text: string; bg: string }> = {
   REJECTED: { text: '반려됨',  bg: 'rgba(180,0,0,0.9)' },
 };
 
-interface HostDashboardProps {
-  listings: HostListing[];
-  isLoading?: boolean;
-  onLogo: () => void;
-  onNew: () => void;
-  onEdit: (l: HostListing) => void;
-  onToggleActive: (id: string) => void;
-}
+export function HostDashboard() {
+  const navigate = useNavigate();
+  const { listings, isLoading, refetch } = useHostListings();
+  const activate = useMutation(activateListingMutation());
+  const deactivate = useMutation(deactivateListingMutation());
 
-export function HostDashboard({ listings, isLoading, onLogo, onNew, onEdit, onToggleActive }: HostDashboardProps) {
+  const onLogo = () => navigate('/');
+  const onNew = () => navigate('/host/new');
+  const onEdit = (l: HostListing) => navigate(`/host/listings/${l.id}/edit`);
+
+  function onToggleActive(id: string) {
+    const target = listings.find((l) => l.id === id);
+    if (!target) return;
+    const listingsId = Number(id);
+    if (target.active) {
+      deactivate.mutate(
+        { path: { listingsId }, query: { memberInfo: HOST_STUB } },
+        { onSuccess: () => refetch() },
+      );
+    } else {
+      activate.mutate(
+        { path: { listingsId }, query: { memberInfo: HOST_STUB } },
+        {
+          onSuccess: () => refetch(),
+          onError: () => alert('활성화에 실패했습니다. 관리자 승인이 필요한 숙소입니다.'),
+        },
+      );
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface-alt)' }}>
       <HostHeader
