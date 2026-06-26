@@ -33,7 +33,7 @@ public interface WishlistRepository extends JpaRepository<Wishlist, Long> {
                     SELECT
                         listing_id, 
                         image_url,
-                        ROW_NUMBER() OVER (PARTITION BY listing_id ORDER BY is_cover DESC, sort_order ASC) AS rn
+                        ROW_NUMBER() OVER (PARTITION BY listing_id ORDER BY sort_order ASC) AS rn
                     FROM listing_image
                 ) ranked
                 WHERE ranked.rn = 1
@@ -71,7 +71,7 @@ public interface WishlistRepository extends JpaRepository<Wishlist, Long> {
                 from Listing l
                 left join ListingImage li on li.listing = l
                 where l.id IN :listingIds
-                order by l.id, li.cover desc, li.sortOrder
+                order by l.id, li.sortOrder
     """
     )
     List<WishlistDetailItemQueryResult> findDetailItem(@Param("listingIds") List<Long> listingIds);

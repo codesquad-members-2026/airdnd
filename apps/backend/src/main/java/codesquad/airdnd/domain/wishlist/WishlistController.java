@@ -5,7 +5,7 @@ import codesquad.airdnd.domain.wishlist.dto.request.NewWishlistAddRequest;
 import codesquad.airdnd.domain.wishlist.dto.request.WishlistItemPatchRequest;
 import codesquad.airdnd.domain.wishlist.dto.request.WishlistPatchRequest;
 import codesquad.airdnd.domain.wishlist.dto.response.*;
-import codesquad.airdnd.global.ApiResponse;
+import codesquad.airdnd.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;

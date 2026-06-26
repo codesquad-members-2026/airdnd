@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { HostHeader } from '../../components/HostHeader';
 import { EditNoteModal } from '../../components/EditNoteModal';
 import { RenameWishlistModal } from '../../components/RenameWishlistModal';
@@ -12,16 +13,16 @@ import {
   removeWishlistItem,
   ApiError,
 } from '../../shared/api/wishlist';
+import { API_BASE } from '../../shared/api/config';
 import type { WishlistDetail, WishlistDetailItem } from '../../types';
 
-interface WishlistDetailPageProps {
-  wishlistId: number;
-  onBack: () => void;
-  onLogo: () => void;
-  onHosting?: () => void;
-}
-
-export function WishlistDetailPage({ wishlistId, onBack, onLogo, onHosting }: WishlistDetailPageProps) {
+export function WishlistDetailPage() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const wishlistId = Number(id);
+  const onBack = () => navigate('/wishlists');
+  const onLogo = () => navigate('/');
+  const onHosting = () => navigate('/host');
   const [detail, setDetail] = useState<WishlistDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,7 +45,7 @@ export function WishlistDetailPage({ wishlistId, onBack, onLogo, onHosting }: Wi
 
   useEffect(() => {
     setLoading(true);
-    fetch(`http://localhost:8080/api/wishlists/${wishlistId}`)
+    fetch(`${API_BASE}/api/wishlists/${wishlistId}`)
       .then(res => res.json())
       .then(json => setDetail(json.data ?? null))
       .catch(() => {})

@@ -14,9 +14,10 @@ public record HostListingSummary(
 	String addressSummary,
 	Capacity capacity,
 	BigDecimal pricePerNight,
-	ListingState state
+	ListingState state,
+	String coverImage
 ) {
-	public static HostListingSummary from(Listing listing, String addressSummary) {
+	public static HostListingSummary from(Listing listing, String addressSummary, String cover) {
 		return new HostListingSummary(
 			listing.getId(),
 			listing.getName(),
@@ -24,7 +25,8 @@ public record HostListingSummary(
 			addressSummary,
 			listing.getCapacity(),
 			listing.getPricePerNight(),
-			listing.getState()
+			listing.getState(),
+			cover
 		);
 	}
 }

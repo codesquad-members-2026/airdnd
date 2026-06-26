@@ -1,6 +1,5 @@
 import type { WishlistSummary } from '../../types';
-
-const BASE = 'http://localhost:8080';
+import { API_BASE as BASE } from './config';
 
 /** 백엔드 ApiResponse 봉투 */
 interface Envelope<T> {
@@ -42,9 +41,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body.data as T;
 }
 
-/** GET /api/wishlists — 현재 멤버의 위시리스트 목록 */
+/** GET /api/wishlists — 현재 멤버의 위시리스트 목록
+ *  (백엔드 ApiResponse가 @JsonInclude(NON_EMPTY)라 빈 목록일 때 data가 빠져 옴 → [] 보정) */
 export function getWishlists(): Promise<WishlistSummary[]> {
-  return request<WishlistSummary[]>('/api/wishlists');
+  return request<WishlistSummary[] | undefined>('/api/wishlists').then((ws) => ws ?? []);
 }
 
 /** POST /api/wishlists/{wishlistId}/items — 기존 위시리스트에 숙소 추가 */
@@ -56,8 +56,13 @@ export function addItemToWishlist(wishlistId: number, listingId: number): Promis
 }
 
 /** POST /api/wishlists/items — 새 위시리스트 생성 + 숙소 추가 */
-export function createWishlistWithItem(listingId: number, name: string): Promise<unknown> {
-  return request('/api/wishlists/items', {
+export interface WishlistAddResult {
+  wishlistId: number;
+  listingId: number;
+  name: string;
+}
+export function createWishlistWithItem(listingId: number, name: string): Promise<WishlistAddResult> {
+  return request<WishlistAddResult>('/api/wishlists/items', {
     method: 'POST',
     body: JSON.stringify({ listingId, name }),
   });

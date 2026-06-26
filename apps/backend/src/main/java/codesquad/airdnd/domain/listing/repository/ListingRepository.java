@@ -1,4 +1,4 @@
-package codesquad.airdnd.domain.listing;
+package codesquad.airdnd.domain.listing.repository;
 
 import java.util.List;
 

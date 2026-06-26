@@ -6,8 +6,12 @@
   padding: 0;
 }
 
-html, body, #root {
-  height: 100%;
+html {
+  scrollbar-gutter: stable;
+}
+
+body, #root {
+  min-height: 100vh;
 }
 
 body {
@@ -139,6 +143,76 @@ h1, h2, h3 {
 
 .popover-enter { animation: popover-in 280ms ease forwards; }
 
+/* 상단 검색바 인라인 확장 — pill에서 검색바로 부드럽게 넓어짐 */
+@keyframes searchbar-expand {
+  from { width: 360px; opacity: 0.35; }
+  to   { width: 820px; opacity: 1; }
+}
+@keyframes searchbar-collapse {
+  /* 폭은 유지(글자 reflow 방지), 페이드+살짝 축소만 */
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
+}
+.searchbar-expand {
+  width: 820px;
+  max-width: 92vw;
+  overflow: visible;
+  animation: searchbar-expand 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.searchbar-collapse {
+  width: 820px;
+  max-width: 92vw;
+  overflow: visible;
+  transform-origin: top center;
+  animation: searchbar-collapse 360ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 확장 시 배경 dim 페이드 인/아웃 */
+@keyframes search-dim-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes search-dim-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.search-dim-enter { animation: search-dim-in 300ms ease forwards; }
+.search-dim-exit { animation: search-dim-out 320ms ease forwards; }
+
+/* 펼침 시 흰색 헤더 영역도 검색바만큼 아래로 확장(오버레이) */
+@keyframes header-panel-expand {
+  from { height: 80px; }
+  to   { height: 104px; }
+}
+@keyframes header-panel-collapse {
+  from { height: 104px; }
+  to   { height: 80px; }
+}
+.header-panel-expand { height: 104px; animation: header-panel-expand 420ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.header-panel-collapse { height: 80px; animation: header-panel-collapse 360ms cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+/* Payment spinner */
+@keyframes pay-spin { to { transform: rotate(360deg); } }
+.pay-spinner {
+  border-radius: 50%;
+  border: 5px solid var(--line);
+  border-top-color: var(--brand-coral);
+  animation: pay-spin 0.8s linear infinite;
+}
+/* Success check pop */
+@keyframes pay-pop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.pay-pop { animation: pay-pop 360ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
+
+/* Step expand/collapse reveal */
+@keyframes step-reveal {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.step-reveal { animation: step-reveal 420ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
 /* Price range input */
 .price-range {
   -webkit-appearance: none;
@@ -168,4 +242,45 @@ h1, h2, h3 {
   border: 1px solid var(--line-strong);
   box-shadow: var(--shadow-md);
   cursor: pointer;
+}
+
+/* 듀얼(최소/최대) 슬라이더 — 두 input을 같은 트랙 위에 겹침 */
+.dual-range {
+  position: relative;
+  height: 22px;
+}
+.dual-range input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  top: 9px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  background: transparent;
+  pointer-events: none; /* 트랙 클릭 무시, 썸만 조작 */
+  outline: none;
+}
+.dual-range input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.dual-range input[type='range']::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  pointer-events: auto;
 }

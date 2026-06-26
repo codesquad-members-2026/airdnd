@@ -1,6 +1,6 @@
 package codesquad.airdnd.domain.wishlist;
 
-import codesquad.airdnd.domain.listing.ListingRepository;
+import codesquad.airdnd.domain.listing.repository.ListingRepository;
 import codesquad.airdnd.domain.listing.entity.Listing;
 import codesquad.airdnd.domain.member.Member;
 import codesquad.airdnd.domain.wishlist.dto.query.WishlistDetailItemQueryResult;

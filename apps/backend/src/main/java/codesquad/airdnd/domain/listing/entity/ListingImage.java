@@ -1,5 +1,8 @@
 package codesquad.airdnd.domain.listing.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -26,14 +29,27 @@ public class ListingImage {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
-    @Column(name = "is_cover", nullable = false)
-    private boolean cover;
-
     @Builder
-    protected ListingImage(Listing listing, String imageUrl, int sortOrder, boolean cover) {
-        this.listing = listing;
+    protected ListingImage(String imageUrl, int sortOrder) {
         this.imageUrl = imageUrl;
         this.sortOrder = sortOrder;
-        this.cover = cover;
+    }
+
+    public void assignListing(Listing listing) {
+        this.listing = listing;
+    }
+
+    public static List<ListingImage> from(List<String> imageUrls) {
+        List<ListingImage> images = new ArrayList<>();
+
+        for (String url : imageUrls) {
+            ListingImage listingImage = ListingImage.builder()
+                .imageUrl(url)
+                .sortOrder(images.size())
+                .build();
+
+            images.add(listingImage);
+        }
+        return images;
     }
 }
