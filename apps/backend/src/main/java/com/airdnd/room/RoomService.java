@@ -1,15 +1,15 @@
 package com.airdnd.room;
 
-import com.airdnd.room.dto.HostRoomRequest;
-import com.airdnd.room.dto.HostRoomResponse;
-import com.airdnd.room.dto.RoomDetailResponse;
-import com.airdnd.room.dto.RoomResponse;
+import com.airdnd.common.error.ErrorCode;
+import com.airdnd.common.exception.BusinessException;
+import com.airdnd.room.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -19,9 +19,9 @@ public class RoomService {
 
 
     @Transactional
-    public Long registerRoom(Long memberId ,HostRoomRequest request) {
+    public Long registerRoom(Long memberId, String hostName ,HostRoomRequest request) {
 
-        Room room = Room.fromRoomRequest(memberId,request);
+        Room room = Room.fromRoomRequest(memberId,hostName ,request);
 
         RoomImage representativeImage = RoomImage.builder()
                 .imageUrl(request.getImageUrl())
@@ -53,60 +53,94 @@ public class RoomService {
     }
 
     @Transactional(readOnly = true)
-    public List<RoomResponse> getRooms() {
-        List<RoomResponse> rooms = new ArrayList<>();
-        for (Room room : roomRepository.findAllByIsActive()) {
-            String imageUrl = room.getRepresentativeImageUrl();
+    public CursorPage<RoomSummary> getRooms(RoomSearchRequestDto conditions) {
+        LocalDateTime now = LocalDateTime.now();
+        int size = conditions.resolvedSize();
 
-            rooms.add(new RoomResponse(
-                    room.getId(),
-                    room.getName(),
-                    room.getRegion(),
-                    room.getAddress(),
-                    room.getPricePerNight(),
-                    room.getMaxCapacity(),
-                    imageUrl,
-                    room.getIsActive(),
-                    room.getAllowsPets()
-            ));
-        }
-        return rooms;
+        // 다음 페이지 존재 여부 판단을 위해 size + 1 개까지 조회한다.
+        List<RoomSummary> fetched = roomRepository.findPage(conditions, now);
+        boolean hasNext = fetched.size() > size;
+        List<RoomSummary> pageRooms = hasNext ? fetched.subList(0, size) : fetched;
+
+        List<Long> roomIds = pageRooms.stream().map(RoomSummary::id).toList();
+        Map<Long, RoomRatingDto> ratings =
+                roomIds.isEmpty() ? Map.of() : roomRepository.findRatingByRoomIds(roomIds);
+
+        List<RoomSummary> items = RoomSummary.fromList(pageRooms, ratings);
+        String nextCursor = hasNext ? Cursors.encode(pageRooms.get(pageRooms.size() - 1).id()) : null;
+
+
+        Long totalCount = conditions.cursorId() == null ? roomRepository.countInArea(conditions, now) : null;
+
+        return new CursorPage<>(items, nextCursor, hasNext, totalCount);
     }
 
     @Transactional(readOnly = true)
     public RoomDetailResponse getRoomById(Long id) {
 
         Room room = roomRepository.findById(id).orElseThrow(()
-                -> new IllegalStateException("Room with id " + id + " not found!"));
+                -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
 
-        if (!room.getIsActive()) {
-            throw new IllegalStateException("Room with id " + id + " is not active!");
-        }
-        if (room.getIsDeleted()) {
-            throw new IllegalStateException("Room with id " + id + " is deleted!");
+        if (!room.getIsActive() || room.getIsDeleted()) {
+            throw new BusinessException(ErrorCode.ROOM_NOT_FOUND);
         }
 
-        List<String> imageUrls = room.getImages().stream()
-                .map(RoomImage::getImageUrl)
-                .toList();
+        RoomRatingDto rating = roomRepository.findRatingByRoomId(id);
+        return RoomDetailResponse.from(room, rating);
+    }
 
-        return new RoomDetailResponse(
-                room.getId(),
-                room.getName(),
-                room.getRegion(),
-                room.getAddress(),
-                room.getPricePerNight(),
-                room.getMaxCapacity(),
-                room.getRepresentativeImageUrl(),
-                room.getIsActive(),
-                room.getAllowsPets(),
-                room.getDescription(),
-                new ArrayList<>(room.getAmenities()),
-                imageUrls,
-                "이완자",
-                room.getLatitude(),
-                room.getLongitude()
+
+    @Transactional
+    public RoomDetailResponse updateRoomDetails(Long hostId,Long roomId, RoomUpdateRequest request) {
+        Room room = roomRepository.findById(roomId).orElseThrow(()
+                -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+
+        if (!room.getHostId().equals(hostId)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACTION);
+        }
+        room.updateRoom(
+                request.name(),
+                request.description(),
+                request.pricePerNight(),
+                request.maxGuests(),
+                request.allowsInfants(),
+                request.allowsPets(),
+                request.amenities()
         );
+
+        if (request.imageUrls() != null && !request.imageUrls().isEmpty()) {
+            List<RoomImage> newImages = new ArrayList<>();
+            for (int i = 0; i < request.imageUrls().size(); i++) {
+                RoomImage image = RoomImage.builder()
+                        .imageUrl(request.imageUrls().get(i))
+                        .isRepresentative(i == 0)
+                        .build();
+                newImages.add(image);
+            }
+            room.updateImages(newImages);
+        }
+
+        RoomRatingDto rating = roomRepository.findRatingByRoomId(roomId);
+        return RoomDetailResponse.from(room, rating);
+    }
+
+    @Transactional
+    public HostRoomResponse getRoomForUpdateById(Long memberId, Long roomId){
+        Room room = roomRepository.findById(roomId).orElseThrow(()-> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+        if(!room.getHostId().equals(memberId)){
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACTION);
+        }
+        return HostRoomResponse.from(room);
+    }
+
+    @Transactional
+    public HostRoomResponse changeRoomStatus(Long hostId, Long roomId, Boolean isActive) {
+        Room room = roomRepository.findById(roomId).orElseThrow(()-> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+        if(!room.getHostId().equals(hostId)){
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_ACTION);
+        }
+        room.changeActiveStatus(isActive);
+        return HostRoomResponse.from(room);
     }
 
 }

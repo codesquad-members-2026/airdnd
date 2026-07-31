@@ -1,0 +1,85 @@
+# Self-contained observability stack for the airdnd box.
+# Run ON the prod (or local) box:  docker compose -f monitoring/docker-compose.yml up -d
+# View Grafana via an SSM tunnel (scripts/monitoring-tunnel.sh) — it is NOT exposed publicly.
+#
+# Scrape targets reach the host via host.docker.internal (host-gateway):
+#   - Spring app actuator : host:8081  (management port)
+#   - MySQL               : host:3306  (published by the root docker-compose.yml)
+# node-exporter & cAdvisor read the host directly and are scraped by service name.
+name: airdnd-monitoring
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: airdnd-prometheus
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    # No public port: Prometheus is only consumed by Grafana on the internal network.
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: airdnd-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: http://localhost:3000
+    ports:
+      - "127.0.0.1:3000:3000"   # bound to loopback: only reachable through the SSM tunnel
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [prometheus]
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: airdnd-node-exporter
+    restart: unless-stopped
+    pid: host
+    command:
+      - "--path.rootfs=/host"
+    volumes:
+      - /:/host:ro,rslave
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: airdnd-cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+
+  mysqld-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: airdnd-mysqld-exporter
+    restart: unless-stopped
+    # Connects to the SEPARATE MySQL box. Host/port/user/password all live in
+    # .my.cnf, which the deploy script writes with the DB's private IP. The app
+    # SG is already allowed in on 3306, so no extra SG rule is needed for this.
+    volumes:
+      - ./mysqld-exporter/.my.cnf:/cfg/.my.cnf:ro
+    command:
+      - "--config.my-cnf=/cfg/.my.cnf"
+      - "--collect.global_status"
+      - "--collect.info_schema.innodb_metrics"
+      - "--collect.info_schema.processlist"
+      - "--collect.perf_schema.eventsstatements"   # per-query digest latency
+      - "--collect.perf_schema.tablelocks"
+
+volumes:
+  prometheus-data:
+  grafana-data:

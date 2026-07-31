@@ -1,0 +1,2452 @@
+mysql> EXPLAIN SELECT * FROM rooms WHERE latitude  BETWEEN 37.42 AND 37.70   AND longitude BETWEEN 126.76 AND 127.18 AND is_active = TRUE AND is_deleted = FALSE;
++----+-------------+-------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows    | filtered | Extra       |
++----+-------------+-------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+|  1 | SIMPLE      | rooms | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 1096657 |     0.01 | Using where |
++----+-------------+-------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+1 row in set, 1 warning (0.00 sec)
+
+mysql> EXPLAIN ANALYZE SELECT * FROM rooms WHERE latitude  BETWEEN 37.42 AND 37.70   AND longitude BETWEEN 126.76 AND 127.18 AND is_active = TRUE AND is_deleted = FALSE;
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| EXPLAIN                                                                                                                                                                                                                                                                                                                                    |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| -> Filter: ((rooms.is_deleted = false) and (rooms.is_active = true) and (rooms.latitude between 37.42 and 37.70) and (rooms.longitude between 126.76 and 127.18))  (cost=119391 rows=135) (actual time=0.139..409 rows=339039 loops=1)
+    -> Table scan on rooms  (cost=119391 rows=1.1e+6) (actual time=0.119..338 rows=1.1e+6 loops=1)
+ |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.47 sec)
+
+mysql> EXPLAIN SELECT * FROM rooms
+    -> WHERE latitude  BETWEEN 33.0 AND 38.6
+    ->   AND longitude BETWEEN 125.0 AND 130.0
+    ->   AND is_active = TRUE AND is_deleted = FALSE;
++----+-------------+-------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows    | filtered | Extra       |
++----+-------------+-------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+|  1 | SIMPLE      | rooms | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 1096657 |     0.01 | Using where |
++----+-------------+-------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+1 row in set, 1 warning (0.00 sec)
+
+mysql> EXPLAIN ANALYZE SELECT * FROM rooms
+    -> WHERE latitude  BETWEEN 33.0 AND 38.6
+    ->   AND longitude BETWEEN 125.0 AND 130.0
+    ->   AND is_active = TRUE AND is_deleted = FALSE;
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| EXPLAIN                                                                                                                                                                                                                                                                                                                                  |
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| -> Filter: ((rooms.is_deleted = false) and (rooms.is_active = true) and (rooms.latitude between 33.0 and 38.6) and (rooms.longitude between 125.0 and 130.0))  (cost=119391 rows=135) (actual time=0.0605..423 rows=1.1e+6 loops=1)
+    -> Table scan on rooms  (cost=119391 rows=1.1e+6) (actual time=0.0488..330 rows=1.1e+6 loops=1)
+ |
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.61 sec)
+
+mysql> EXPLAIN WHERE lower(region) LIKE lower('%서울%')
+    ->   AND price_per_night BETWEEN 80000 AND 250000
+    ->   AND allows_pets = FALSE
+    ->   AND max_capacity >= 2
+    ->   AND latitude  BETWEEN 37.42 AND 37.70
+    ->   AND longitude BETWEEN 126.76 AND 127.18
+    ->   AND is_active = TRUE AND is_deleted = FALSE;
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'WHERE lower(region) LIKE lower('%서울%')
+  AND price_per_night BETWEEN 80000 A' at line 1
+mysql> EXPLAIN SELECT * FROM rooms
+    -> WHERE lower(region) LIKE lower('%서울%')
+    ->   AND price_per_night BETWEEN 80000 AND 250000
+    ->   AND allows_pets = FALSE
+    ->   AND max_capacity >= 2
+    ->   AND latitude  BETWEEN 37.42 AND 37.70
+    ->   AND longitude BETWEEN 126.76 AND 127.18
+    ->   AND is_active = TRUE AND is_deleted = FALSE;
++----+-------------+-------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+| id | select_type | table | partitions | type | possible_keys | key  | key_len | ref  | rows    | filtered | Extra       |
++----+-------------+-------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+|  1 | SIMPLE      | rooms | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 1096657 |     0.00 | Using where |
++----+-------------+-------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+1 row in set, 1 warning (0.01 sec)
+
+mysql> EXPLAIN ANALYZE SELECT * FROM rooms
+    -> WHERE lower(region) LIKE lower('%서울%')
+    ->   AND price_per_night BETWEEN 80000 AND 250000
+    ->   AND allows_pets = FALSE
+    ->   AND max_capacity >= 2
+    ->   AND latitude  BETWEEN 37.42 AND 37.70
+    ->   AND longitude BETWEEN 126.76 AND 127.18
+    ->   AND is_active = TRUE AND is_deleted = FALSE;
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| EXPLAIN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| -> Filter: ((rooms.is_deleted = false) and (rooms.is_active = true) and (rooms.allows_pets = false) and (lower(rooms.region) like <cache>(lower('%서울%'))) and (rooms.price_per_night between 80000 and 250000) and (rooms.max_capacity >= 2) and (rooms.latitude between 37.42 and 37.70) and (rooms.longitude between 126.76 and 127.18))  (cost=119391 rows=1) (actual time=0.114..415 rows=138331 loops=1)
+    -> Table scan on rooms  (cost=119391 rows=1.1e+6) (actual time=0.0707..315 rows=1.1e+6 loops=1)
+   |
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.44 sec)
+
+mysql>
+
+
+
+CREATE TABLE rooms (
+       id BIGINT AUTO_INCREMENT PRIMARY KEY,
+       host_id BIGINT NOT NULL,
+       host_name VARCHAR(255) NOT NULL,
+       name VARCHAR(255) NOT NULL,
+       region VARCHAR(100) NOT NULL COMMENT '지역 (검색 및 필터링용)',
+       description TEXT,
+       address VARCHAR(500) NOT NULL COMMENT '전체 주소 텍스트',
+       country_code VARCHAR(5) NOT NULL COMMENT 'ISO 국가 코드 (예: KR, US, FR)',
+       latitude DECIMAL(15, 12) NOT NULL COMMENT '위도',
+       longitude DECIMAL(15, 12) NOT NULL COMMENT '경도',
+       price_per_night INT NOT NULL,
+       max_capacity INT NOT NULL,
+       allows_infants BOOLEAN NOT NULL DEFAULT TRUE,
+       allows_pets BOOLEAN NOT NULL DEFAULT FALSE COMMENT '반려동물 동반 가능 여부',
+       is_active BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'true: 노출, false: 숨김',
+       is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Soft Delete',
+       FOREIGN KEY (host_id) REFERENCES members(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ Can you get me query strings I can use in MySQL client terminal to test with EXPLAIN and ANALYZE so that I see how long filters take for each condition and how much rows are actually scanned before I change the schema?
+
+Good call — establishing a baseline before touching the schema is exactly right. I left the DB clean earlier, so first reseed so the numbers are meaningful:
+
+scripts/seed-rooms.sh 100000
+
+Here's a diagnostic SQL file. Let me write it with each predicate isolated, EXPLAIN ANALYZE for real timing + actual rows scanned, and notes on the two traps that will otherwise mislead you (the LIMIT short-circuit, and reading "rows scanned" vs "rows matched").
+
+⏺ Write(apps/backend/scripts/perf_room_search.sql)
+Wrote 188 lines to apps/backend/scripts/perf_room_search.sql
+-- ============================================================================
+-- perf_room_search.sql
+-- Baseline diagnostics for RoomQueryRepositoryImpl.findByRoomSearchRequest,
+-- BEFORE adding any index. Run these in a MySQL client against the dev DB.
+--
+-- Prereq:  scripts/seed-rooms.sh 100000      (reseed; the DB was left clean)
+-- Connect: docker compose exec -e MYSQL_PWD=airdnd mysql mysql -uairdnd airdnd
+--
+-- The app query (QueryDSL) reduces to roughly:
+--   SELECT * FROM rooms
+… +178 lines
+
+Now let me reseed and actually run a representative subset to confirm the file executes cleanly and to hand you a real baseline snapshot (this also leaves 100k rows in place so you can run the rest yourself).
+
+  Ran 1 shell command
+
+Heads-up — the table has ~1.1M rows, not 100k. The full-table scan node reports actual rows=1.1e+6, so there's pre-existing room data beyond what I just seeded (my --reset only removes seed-host
+rows). Let me confirm the real counts so the baseline is reported honestly.
+
+  Ran 1 shell command
+
+The file runs clean. But the row count tells a story: the rooms table currently hot 9014 = seed-host), plus 3 real app rooms. That's well past the 100k I seeded this turn — so something (likely your own seeding between turns) loaded ~1M. I've left te data you may have created intentionally.
+
+It's actually a great stress baseline. Here's what the three sample queries show, rows, no index yet:
+
+┌──────────────────────────────────────────────┬─────────┬──────────────┬─────────
+│                    Query                     │  Time   │ Rows scanned │ Rows matched │    Plan    │
+├──────────────────────────────────────────────┼─────────┼──────────────┼─────────
+│ A. full-scan baseline (is_active/is_deleted) │ ~220 ms │ 1,100,000    │ 1.1M         │ Table scan │
+├──────────────────────────────────────────────┼─────────┼──────────────┼─────────
+│ B1. region LIKE '%서울%'                     │ ~251 ms │ 1,100,000    │ 330,001      │ Table scan │
+├──────────────────────────────────────────────┼─────────┼──────────────┼─────────
+│ C1. Seoul bbox (lat+lng between)             │ ~262 ms │ 1,100,000    │ 339,039
+└──────────────────────────────────────────────┴─────────┴──────────────┴─────────
+
+The baseline you wanted is now concrete:
+
+- Every predicate is a full table scan — Table scan on rooms … actual rows=1.1e+6 acks table size, not how selective the filter is.
+- The gap is the whole point. C1 (Seoul bbox) scans all 1.1M rows but only 339k match — and a tight map box would match far fewer. That scanned-vs-matched gap is exactly what a (latitude,
+longitude) index collapses. After you add it, re-run C1/C3 and the top node shouldndex range scan with actual rows dropping toward the matched count.
+- region LIKE won't benefit from a plain index as written — lower(region) LIKE '% (non-sargable). Worth seeing now so you don't "fix" it with an index that can't be
+used.
+
+To run the full set yourself
+
+docker compose exec -e MYSQL_PWD=airdnd mysql mysql -uairdnd airdnd -t < apps/backend/scripts/perf_room_search.sql
+
+The file (apps/backend/scripts/perf_room_search.sql) isolates each predicate (B1–Bthe pathological empty-ocean box that scans everything to return 0 rows (C3/D3),
+and the app's real SELECT * … LIMIT 200 so you can see the LIMIT short-circuit. Re (how to tell "rows scanned" from "rows matched", and the two traps).
+
+One thing to decide before you go further: do you want to keep all 1.1M rooms, or s the scan pain very visible (good for before/after), but if it was accidental Ican reset and reseed a clean 100k. Your call — I won't touch it otherwise.
+
+fetch("http://127.0.0.1:5173/rooms/map", {
+  "headers": {
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "cache-control": "max-age=0",
+    "if-none-match": "W/\"224-5AiZVgFiwOTdZh8ZjgiRayX8NRc\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "same-origin",
+    "sec-fetch-user": "?1",
+    "upgrade-insecure-requests": "1"
+  },
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/@vite/client", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"9a86-ADmtQWxxIeWF+kUE5c7DstdyVi8\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/rooms/map",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/main.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"3b9-SBNE+/kpVeGiM06q3XqFtWUzE24\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/rooms/map",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/@react-refresh", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"5367-h8iO905IyT3hT92qDTgpgcseDiA\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/rooms/map",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/vite/dist/client/env.mjs", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"25b-NXvTQjekUxXmNQLgbD2IPIxHeBM\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/@vite/client",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/react.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/main.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/main.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/src/app/App.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"8b9-QSd53PBVMQAZtLvUNZenNXXpSdk\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/main.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/styles/global.css", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"15d0c-ITij/Vx9iVQhbdR3P4cpE9icmdk\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/main.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/main.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/chunk-B-1-B7_t.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=de59fb3d",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/react-router-dom.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/App.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/src/app/providers/AppProviders.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"c7c-RPhIdEUtNY8KjT4QI6h1+Pj6tIk\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/App.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/app/router/router.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1c40-o0ZMHlyytlMkq8uJUbesK2CvewU\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/App.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("ws://127.0.0.1:5173/?token=IEGvgD343QG8", {
+  "headers": {
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "cache-control": "no-cache",
+    "pragma": "no-cache",
+    "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+    "sec-websocket-key": "KAuhIrfBUblgeE6iwtx8AQ==",
+    "sec-websocket-protocol": "vite-hmr",
+    "sec-websocket-version": "13"
+  },
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/app/router/AppLayout.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"4ec0-0gu0dt6Ytzqq0QI0yzDkmt4fHlc\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/app/router/ProtectedRoute.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"d80-Xtle+QBB8A1/7nLtNzJDmUkrrZ0\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/admin/AdminPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"19d9-1LgvXMJ9vInrIGpGdtM7PWSzUMo\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/admin/AdminReservationsPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"22da-JJaTgeJ/8R4hf/ysYhiekWZQZik\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/admin/AdminRoomApprovalsPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1bc6-Gmrmqakc694DZhaNlobOqftNQVg\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/admin/AdminUsersPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1a49-I56TfcAIize7ptqa/LaY7VEFS0w\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/admin/AdminWaitlistPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1b51-IoANERqNPkITrjRlW4iXG5MBw0A\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/auth/AuthCallbackPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"14e7-/Zmq3S+7hg2/zB4WpNR42Zo5cQQ\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/checkout/CheckoutPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"4d3a-5JJ8QOvmBpb5MVQDusfDWq8gAGU\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/auth/LoginPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"fe3-SVFYKKvn3jTWcpBFo67BByZxmKo\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/ForbiddenPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"b72-J7EKKWx3vUcVe9JiRc842hCJbvo\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/host/HostRoomFormPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"166a-apYk7xLtTxUj68BgtaEq0WPTr2w\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/host/HostRoomsPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"2527-ERslGOB1yn89sstYtAbIMub0cb0\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/my/MyPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"12f3-uzQ87w6goQl3vajHdoOPfjfGtxo\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/NotFoundPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"b6c-Hs5INlITNAMScDGy3T/tqePv+dU\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/map/MapSearchPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"24f6-yAjFUX8xMpXFECkqCd0+VCi4IMA\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/notifications/NotificationsPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1484-1DiZqY02iZFpyRXjYzTUCZEjgNU\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/reservations/ReservationDetailPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"56be-Ec5QdeOcez9sdR1prqfTNYdZEy8\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/reservations/ReservationsPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1ae0-bgYiPTlX56NjGoNlAolVF37RZHs\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/rooms/HomePage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1970-Y8NKDYhQTKKMaN6n6uW8l7/uqQU\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/rooms/RoomDetailPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1abf-aG4Qost1BgSJoaqRDrEAb54dSiE\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/wishlist/WishlistsPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"12ae-R29pP8R6zTObbNXeqfOqMf9IomY\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/pages/wishlist/WishlistDetailPage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"13e8-anB1o4VENyuCmKp+Rrfniwj6Q9c\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/router.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/react-dom.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=de59fb3d",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/@tanstack_react-query.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/providers/AppProviders.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/@vis__gl_react-google-maps.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/providers/AppProviders.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/maps/config/mapsConfig.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"2db-nQjpj6UuTWbmaCyX5zwPZW2Vk/o\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/providers/AppProviders.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/lucide-react.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/AppLayout.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/auth/api/authQueries.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"3f4-tthmuEbNKx/qzdFuDRGKo7WN42M\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/AppLayout.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/auth/lib/authAccess.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"12b-c7jhcZpEvFbDOh0R9PB9RrpbOPc\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/app/router/AppLayout.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/admin/api/adminQueries.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"733-8aKFRfuxANc49URKSsWmhf0Memo\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/admin/AdminPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/ui/ErrorMessage.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"9e5-qAG1piTOUgiANjU/2p0i1d9/43M\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/admin/AdminPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/ui/Loading.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"93a-Nx8xEIrWRHF/oT57AB8ytDZN5u4\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/admin/AdminPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/lib/format.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"21d-TUrR2MmxlFE73f92oFcHqshuoSc\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/admin/AdminReservationsPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/ui/StatusBadge.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"84e-f9348h6ffM2kEaX1lnUc089rR0w\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/admin/AdminReservationsPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/ui/EmptyState.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"a1b-Pr8stIVhKKaH05mbd56oYePQr6s\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/admin/AdminRoomApprovalsPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/@paypal_react-paypal-js.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/checkout/CheckoutPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/config/env.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"58b-LImkdGLF2+FsDMLuvlOUXqbDgjk\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/checkout/CheckoutPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/lib/date.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"11e-gMaTAtVW3iHP79RqHyGzHap/JRQ\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/checkout/CheckoutPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/payments/api/paymentsApi.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"447-UAECzoxC/XnIHuIGtt2mgg12QJQ\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/checkout/CheckoutPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reservations/api/reservationsQueries.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"7ab-vVhzNkiKwClVGM5+HRpR2tU+mHY\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/checkout/CheckoutPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/api/roomsQueries.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"3a9-mDxziYpkM3SuXiHXLJs1nSbWIp4\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/checkout/CheckoutPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/auth/api/authApi.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"20c-GKRrTAx2mlK+DBLCYnNk5pxs3pM\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/auth/AuthCallbackPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/auth/lib/authRedirect.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"2b6-Wu1WIqqUD71WHRu4mAoEe0m00xM\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/auth/AuthCallbackPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/notifications/api/notificationsQueries.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"17b-g4Cj9wTixg2kO7WGmiW48b4HURM\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/notifications/NotificationsPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/host/api/hostQueries.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"7b9-WG0eeTAlQ5IMk2pApRlWO1vQZpo\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/host/HostRoomsPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/host/ui/HostRoomList.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1e09-kGZf1k0AoCyUVfWrHZHWhbvB8uM\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/host/HostRoomsPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/react_jsx-runtime.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/node_modules/.vite/deps/@tanstack_react-query.js?v=de59fb3d",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/host/ui/HostRoomForm.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"3748-R5u/qhgzear84RPOACBUahny914\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/host/HostRoomFormPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/ui/SearchBar.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"5d76-ayGjQm1wL5V/d1ifJrTcUzUpHAs\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/map/MapSearchPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reviews/ui/RoomReviewBadge.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"bcc-xWL27IP7WzzkSTABEjiVVxi0srU\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/map/MapSearchPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/maps/ui/RoomResultsMap.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"2e57-vqhdCEqPQOr3SFikeIkbuiHIRFs\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/map/MapSearchPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reservations/model/reservationStatus.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"120-V2bWHZGqru5kevfXBguwAl8l8SU\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/reservations/ReservationDetailPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/ui/Modal.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"eec-ETAantDTC7MCuNpLLwdu+wOMhHs\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/reservations/ReservationDetailPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reservations/ui/ReservationList.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"4b7e-Z1kwKcXkJQYgH8PnHRCHXPZ2Ycs\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/reservations/ReservationsPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/ui/RoomList.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"a47-cJMVp11cQ11OcaXCuxhAdjZMAFU\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/rooms/HomePage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reservations/ui/ReservationForm.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"4194-UlMpk8sAW05MVHtw7h3S0m1/hLU\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/rooms/RoomDetailPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/ui/RoomDetailHeader.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"ca0-SKA/47pk1rUOD1hyIlWZO/MKb/8\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/rooms/RoomDetailPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/ui/RoomGallery.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"23eb-uOiLUtkDCVD03cibKEZrlyKhRBc\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/rooms/RoomDetailPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/ui/RoomOverview.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1686-R/P8On61QGmYhG6MXxkmigGhSG8\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/rooms/RoomDetailPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/ui/RoomDescription.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"151b-lj3mcD50jUVBpdp+Pv+g3DhPxYc\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/rooms/RoomDetailPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/ui/RoomAmenities.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1687-X0Ky41y1DQKpY18YmZ1SS+TOkQc\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/rooms/RoomDetailPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/ui/RoomLocation.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"af8-LcTGVoNmK8kR6mF6nKhAZdILyxM\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/rooms/RoomDetailPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reviews/ui/ReviewList.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1e02-HZQRs8jfUaRpzWKiuugN6gIrst4\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/rooms/RoomDetailPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/wishlist/api/wishlistQueries.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"593-/eeophgljuGxvdSxjaPzbeIuPs8\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/wishlist/WishlistsPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/wishlist/ui/CreateWishlistButton.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1414-kRV+LZywoYhYt6EmcUBtR3VRLnA\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/wishlist/WishlistsPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/wishlist/ui/WishlistFolderCard.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"cd7-3CKoMnhutAx9U8XMmPXU7GdlGvA\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/wishlist/WishlistsPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/ui/RoomCard.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"12b0-Y+7USBCWiILs/mdKhwxqPWKQRkk\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/pages/wishlist/WishlistDetailPage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/admin/api/adminApi.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"51f-c3KINHId2+ZEJBcQSqFGzkGlgEw\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/admin/api/adminQueries.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/api/apiError.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"e3-92W4GPydUmLahigEaLZtuXVmpuw\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/shared/ui/ErrorMessage.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reservations/api/reservationsApi.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"3b0-oglfmlDLyeDoyEqBVExmQhVsoes\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/reservations/api/reservationsQueries.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/api/roomsApi.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"543-2PnnDIdIt0xJVZ7hyxCKtmArtdY\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/rooms/api/roomsQueries.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/api/httpClient.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"47f-6RVTJX95bYAq8qXbqZj0TUwRCIA\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/auth/api/authApi.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/auth/model/authTypes.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"12f-W2n616kdTHdU8o/rhzspmmSrOBw\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/auth/api/authApi.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/payments/model/paymentTypes.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"13e-bjaZ1XHGizC30rOF9TpguNK1Lds\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/payments/api/paymentsApi.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/date-fns.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/shared/lib/date.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/notifications/api/notificationsApi.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"126-gldPuxfyLJ6H7rhVmeqfCv/jCbU\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/notifications/api/notificationsQueries.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/host/api/hostApi.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"66e-yh5CL1B1eQEVHb/kwbAE5JwTL14\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/host/api/hostQueries.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/maps/ui/RoomPriceMarker.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"e7c-jNsh7HxSdPkXDNtqtYfHYwqozvw\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/maps/ui/RoomResultsMap.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/maps/ui/RoomClusterMarker.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"b94-jqQbTVIpQaCQMdS21XfkmhIK8zw\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/maps/ui/RoomResultsMap.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/maps/ui/RoomMapInfoCard.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1616-R49b+MZyqgowJ9jGcukPUkoGQU8\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/maps/ui/RoomResultsMap.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/@hookform_resolvers_zod.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/host/ui/HostRoomForm.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/react-hook-form.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/host/ui/HostRoomForm.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/maps/ui/LocationPicker.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"2876-zi0O+9iiiil9MgRJWRPBMZFx9qk\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/host/ui/HostRoomForm.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/maps/ui/RoomLocationMap.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1911-Emk3TYhzVdYodHMUr4GgCRH9El0\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/host/ui/HostRoomForm.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/model/amenities.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"19d7-OX3VsctB2DuYVQAyoVGBcGCd2Z0\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/host/ui/HostRoomForm.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/host/model/hostRoomTypes.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"5c0-PI4n6wLoD6Nr+RccriKBMPbETiA\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/host/ui/HostRoomForm.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/lib/calendar.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"6f1-sjXrEhsPln0F5xjYzOnXDbnKyVY\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/rooms/ui/SearchBar.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/shared/ui/CalendarPopover.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"19be-DDLjKPd79u8TCVSijTD5blCU+/0\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/rooms/ui/SearchBar.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reviews/ui/RoomReviewSummaryButton.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1d4c-xwPdEfoprHe0zk+qPu85s+X9j6g\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/rooms/ui/RoomOverview.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reservations/model/reservationTypes.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"4e6-XTqciE1H9+id4r+wwYsYgTz6vo0\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/reservations/ui/ReservationForm.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reservations/ui/GuestSelector.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"220b-FJ8jBMZT2C2JYvW4h/lXnV5/f90\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/reservations/ui/ReservationForm.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/wishlist/ui/AddToWishlistButton.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"233f-yR0C07wOXBSujWmJPac6Z5RRYW4\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/rooms/ui/RoomDetailHeader.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/core-zql-K-uE.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/node_modules/.vite/deps/@hookform_resolvers_zod.js?v=de59fb3d",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reviews/api/reviewsQueries.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"149-3bblaj3tH0P2DvewFmwkvSJGlZ4\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/reviews/ui/ReviewList.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reviews/ui/ReviewItem.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1019-7vFtmdu6Neql5cbW6iLHzattxy0\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/reviews/ui/ReviewList.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reviews/ui/ReviewSortDropdown.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1341-EgmjPJ3PM3dxaVfFACejRhd/Xdw\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/reviews/ui/ReviewList.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/wishlist/api/wishlistApi.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"2dd-CqZExG2hC9ifm3lS/kGnKLn8slE\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/wishlist/api/wishlistQueries.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/admin/model/adminTypes.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"3ea-jhHJXnN2W/cww5rzYK5bAw/GNs4\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/admin/api/adminApi.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/rooms/model/roomTypes.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"7ec-YMpvgTyY7MR2oDlzWY9dU+EpFD4\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/rooms/api/roomsApi.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/node_modules/.vite/deps/zod.js?v=de59fb3d", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/auth/model/authTypes.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/notifications/model/notificationTypes.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"112-qberFXLO5jhAd0BRLAlhYG5ipok\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/notifications/api/notificationsApi.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/maps/model/locationTypes.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"3ae-CsJOX7Atsy+TvPPoKDL4zdEwIvA\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/maps/ui/LocationPicker.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/maps/model/placeLocation.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"3f0-jHv93EagDGifK1kmzGkQ9LIaXwM\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/maps/ui/LocationPicker.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/maps/ui/RoomDetailPin.tsx", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"dc6-axt13ss4bQ/LY/uPPfPSZ3JMUso\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/maps/ui/LocationPicker.tsx",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/wishlist/model/wishlistTypes.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"1d8-MEcHs75dFwSCv5h/Wd/md6KJC4w\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/wishlist/api/wishlistApi.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reviews/api/reviewsApi.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"16d-CZM6cwuQa5d6I9GEgguT7yoFnMA\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/reviews/api/reviewsQueries.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:5173/src/features/reviews/model/reviewTypes.ts", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "if-none-match": "W/\"10d-ax5fEhTz/x/qtESjZmz4RE0eo3Q\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "script",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin"
+  },
+  "referrer": "http://127.0.0.1:5173/src/features/reviews/api/reviewsApi.ts",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("chrome-extension://72c7f0ac-f9ff-46d4-b7bc-d97ec4cf279d/js/contentScriptMain.bundle.js", {
+  "referrer": "",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:8080/api/rooms?guests=1&adults=1&children=0&infants=0", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
+  },
+  "referrer": "http://127.0.0.1:5173/",
+  "body": null,
+  "method": "OPTIONS",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:8080/api/auth/me", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
+  },
+  "referrer": "http://127.0.0.1:5173/",
+  "body": null,
+  "method": "OPTIONS",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("http://127.0.0.1:8080/api/rooms?guests=1&adults=1&children=0&infants=0", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "content-type": "application/json; charset=utf-8",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
+  },
+  "referrer": "http://127.0.0.1:5173/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("http://127.0.0.1:8080/api/auth/me", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "content-type": "application/json; charset=utf-8",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
+  },
+  "referrer": "http://127.0.0.1:5173/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+}); ;
+fetch("https://maps.googleapis.com/maps/api/js?libraries=&key=AIzaSyANhePx-1QH004GmXzeqDuK3EcbtDIp0SQ&solution_channel=GMP_visgl_rgmlibrary_v1_default&callback=google.maps.__ib__", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("chrome-extension://pbanhockgagggenencehbnadejlgchfc/js/contentScriptMain.bundle.js", {
+  "referrer": "",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("https://maps.googleapis.com/maps-api-v3/api/js/65/3b/main.js", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("https://maps.googleapis.com/maps/api/mapsjs/gen_204?csp_test=true", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9,ko;q=0.8",
+    "priority": "u=1, i",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "cross-site",
+    "x-browser-channel": "stable",
+    "x-browser-copyright": "Copyright 2026 Google LLC. All Rights Reserved.",
+    "x-browser-validation": "rDexa0VxSGod7UzQ3NAJdokcges=",
+    "x-browser-year": "2026",
+    "x-client-data": "CKmdygEIlKHLAQiGoM0BCO3MlDAY582UMA=="
+  },
+  "referrer": "http://127.0.0.1:5173/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("https://maps.googleapis.com/maps-api-v3/api/js/65/3b/common.js", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("https://maps.googleapis.com/maps-api-v3/api/js/65/3b/map.js", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+}); ;
+fetch("https://maps.googleapis.com/maps-api-v3/api/js/65/3b/util.js", {
+  "headers": {
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\""
+  },
+  "referrer": "http://127.0.0.1:5173/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "omit"
+});
+
+385798 KB
+31.9 S
+
+Browser Died

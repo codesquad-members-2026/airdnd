@@ -1,0 +1,30 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is gitignored — it must never be committed.
+
+project           = "airdnd"
+environment       = "prod"
+aws_region        = "ap-northeast-2"
+ssh_ingress_cidr  = "1.2.3.4/32" # `curl -s ifconfig.me` then append /32
+
+# WAF rate limiting on CloudFront (all OPTIONAL — sensible defaults in code):
+# enable_waf_rate_limit = true   # false = no WAF at all (off, no charges)
+# waf_rate_limit        = 2000   # requests / 5-min window / IP (floor 100)
+# waf_rate_limit_block  = false  # false = COUNT only; flip true to actually BLOCK
+
+# Custom domain is OPTIONAL. Leave these out entirely to launch on the free
+# CloudFront-generated https://dxxxx.cloudfront.net URL. Fill them in only once
+# you own a domain with a Route 53 hosted zone:
+# domain_name       = "airdnd.example.com"
+# route53_zone_name = "example.com"
+
+# All six secrets below are REQUIRED (no defaults) — an apply without them now
+# fails fast instead of silently overwriting the live prod SSM secrets.
+# From the Google Cloud / PayPal developer consoles:
+oauth_google_client_id     = "..."
+oauth_google_client_secret = "..."
+paypal_client_id           = "..."
+paypal_client_secret       = "..."
+
+# IAM user keys the backend uses to sign presigned S3 uploads (uploads.tf):
+aws_access_key_id     = "..."
+aws_secret_access_key = "..."

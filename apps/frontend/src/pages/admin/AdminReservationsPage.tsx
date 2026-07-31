@@ -32,7 +32,7 @@ export function AdminReservationsPage() {
             <article className="metric-card">
               <span>취소 예약</span>
               <strong>
-                {reservationsQuery.data.filter((reservation) => reservation.status === 'CANCELED').length}
+                {reservationsQuery.data.filter((reservation) => reservation.status === 'CANCELLED').length}
               </strong>
             </article>
             <article className="metric-card">
@@ -47,7 +47,7 @@ export function AdminReservationsPage() {
           <div className="list-stack">
             {reservationsQuery.data.map((reservation) => (
               <article className="reservation-item" key={reservation.id}>
-                <img src={reservation.roomImageUrl} alt={`${reservation.roomName} 대표 이미지`} />
+                <img src={reservation.roomUrl} alt={`${reservation.roomName} 대표 이미지`} />
                 <div className="reservation-content">
                   <div className="row-between">
                     <h2>{reservation.roomName}</h2>

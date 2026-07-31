@@ -1,0 +1,16 @@
+apiVersion: 1
+
+# Any *.json dropped into monitoring/grafana/dashboards is auto-loaded on startup.
+# To add the community dashboards (IDs in monitoring/README.md): download their JSON
+# from grafana.com into that folder, or import by ID in the UI (Dashboards → Import).
+providers:
+  - name: airdnd
+    orgId: 1
+    folder: airdnd
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

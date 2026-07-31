@@ -23,6 +23,7 @@ public record HostRoomResponse (
         Boolean allowsInfants,
         List<String> amenities,
         String hostName,
+        String countryCode,
         BigDecimal latitude,
         BigDecimal longitude,
         String status
@@ -66,7 +67,8 @@ public record HostRoomResponse (
                 room.getAllowsPets(),
                 room.getAllowsInfants(),
                 List.copyOf(room.getAmenities()),
-                "테스트 호스트", // 임시 더미 데이터 (hostName)
+                room.getHostName(),
+                room.getCountryCode(),
                 room.getLatitude(),
                 room.getLongitude(),
                 status

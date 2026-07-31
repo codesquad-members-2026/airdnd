@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.BatchSize;
+import org.locationtech.jts.geom.Point;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -24,6 +25,9 @@ public class Room {
 
     @Column(nullable = false)
     private Long hostId;
+
+    @Column(nullable = false)
+    private String hostName;
 
     @Column(nullable = false)
     private String name;
@@ -45,6 +49,9 @@ public class Room {
 
     @Column(nullable = false, precision = 15, scale = 12)
     private BigDecimal longitude;
+
+    @Column(name="location", insertable = false, updatable = false)
+    private Point location;
 
     @Column(nullable = false)
     private Integer pricePerNight;
@@ -75,10 +82,11 @@ public class Room {
 
 
     @Builder
-    private Room(Long hostId, String name, String region, String description, String address,
+    private Room(Long hostId, String hostName, String name, String region, String description, String address,
                  String countryCode, BigDecimal latitude, BigDecimal longitude, Integer pricePerNight,
                  Integer maxCapacity, Boolean allowsInfants, Boolean allowsPets, List<String> amenities) {
         this.hostId = hostId;
+        this.hostName = hostName;
         this.name = name;
         this.region = region;
         this.description = description;
@@ -97,9 +105,10 @@ public class Room {
         this.isDeleted = false;
     }
 
-    public static Room fromRoomRequest(Long hostId, HostRoomRequest request) {
+    public static Room fromRoomRequest(Long hostId, String hostName,HostRoomRequest request) {
         return Room.builder()
                 .hostId(hostId)
+                .hostName(hostName)
                 .name(request.getName())
                 .region(request.getRegion())
                 .description(request.getDescription())
@@ -122,5 +131,32 @@ public class Room {
     public String getRepresentativeImageUrl() {
         return getImages().stream().filter(RoomImage::getIsRepresentative).findFirst().
                 map(RoomImage::getImageUrl).orElse("");
+    }
+    public void updateRoom(String name, String description, Integer pricePerNight,
+                           Integer maxCapacity, Boolean allowsInfants, Boolean allowsPets,
+                           List<String> newAmenities) {
+        this.name = name;
+        this.description = description;
+        this.pricePerNight = pricePerNight;
+        this.maxCapacity = maxCapacity;
+        this.allowsInfants = allowsInfants;
+        this.allowsPets = allowsPets;
+        if (this.amenities != null) {
+            this.amenities.clear();
+        }
+        if (newAmenities != null) {
+            this.amenities.addAll(newAmenities);
+        }
+    }
+
+    public void updateImages(List<RoomImage> newImages) {
+        this.images.clear();
+        for (RoomImage roomImage : newImages) {
+            this.addRoomImage(roomImage);
+        }
+    }
+
+    public void changeActiveStatus(Boolean isActive) {
+        this.isActive = isActive;
     }
 }

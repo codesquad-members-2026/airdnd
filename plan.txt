@@ -1,0 +1,104 @@
+That browser crash (Chrome's "error code 5" is a renderer OOM) plus the 32s response is the cliff we predicted: the backend serialized a huge SELECT * result and the frontend's O(n²) clusterRooms tried to chew through tens of thousands of points. That's the proof. Here's the full plan to fix it properly.
+
+First, the root cause in one line: the list and the map share one unbounded, full-entity query, and there's no geo index. The fix is to (a) index the geo lookup, (b) split into two purpose-built endpoints, and (c) make the map aggregate server-side. Below is a phased plan — each phase is independently shippable and verifiable.
+
+---
+Target architecture
+
+                       ┌─────────────────────────── GET /api/rooms (list)
+  one shared query     │   cursor-paginated, ~20/page, full cards
+  (unbounded SELECT *) ─┤
+   → split into two    │
+                       └─────────────────────────── GET /api/rooms/map (map)
+                           bbox, lightweight; returns POINTS when sparse,
+                           CLUSTERS (server grid-aggregated) when dense
+
+The list never returns more than a page. The map never returns more than a viewport's worth of buckets (a few hundred), no matter if there are 1M rooms.
+
+Phase 0 — Revert the dev experiment + add a zoom floor (safety, ~10 min)
+
+Undo the two temporary caps so prod behavior is sane while we build:
+- RoomSearchRequestDto.resolvedLimit() → back to limit == null ? 200 : limit;
+- MapSearchPage.tsx → restore limit on the bbox request (it becomes obsolete once the map endpoint lands, but don't leave it uncapped).
+- Add minZoom={5} + a Korea restriction to <Map> in RoomResultsMap.tsx:126 so users can't zoom out to the whole world and request a planet-sized bbox.
+
+Phase 1 — DB schema: index the bbox (the single biggest win)
+
+New Flyway migration V5__add_rooms_geo_index.sql:
+
+-- Bbox range scan support. Leading column = latitude (range-narrowed),
+-- longitude read via index-condition pushdown. price_per_night included so the
+-- map aggregation (MIN/MAX price + COUNT) can run index-only, no row lookups.
+CREATE INDEX idx_rooms_lat_lng_price
+  ON rooms (latitude, longitude, price_per_night);
+
+Keep latitude/longitude as DECIMAL(15,12) for now. A plain B-tree composite already turns the 1.1M-row full scan into a narrow range scan — that almost certainly closes the gap you measured. Converting to POINT + SPATIAL (R-tree) is a real win only at the millions-of-rows-with-radius-search level; I've put it in Phase 5 as optional, because it's a heavier migration (SRID, MBRContains query rewrite, NOT NULL backfill) and shouldn't block the split.
+
+Verify before/after with the file you already have (apps/backend/scripts/perf_room_search.sql): re-run the C1 Seoul-bbox case. The top node should flip from Table scan on rooms (actual rows=1.1e6) to an index range scan with actual rows near the matched count.
+
+Phase 2 — Backend list endpoint (cursor pagination + slim query)
+
+Goal: GET /api/rooms returns one page of cards, never the whole set.
+
+1. Stop fetching full entities. Replace selectFrom(room) in RoomQueryRepositoryImptor into a RoomCardDto (id, name, address, price, maxCapacity, lat, lng,
+representative image URL via a correlated subquery or a join, rating). This kills ding that the current path triggers.
+2. Cursor, not offset. Order by a stable key — I suggest (id) for v1 (simple, index-friendly) and make sort configurable later. Request: ?...filters...&cursor=<opaque>&size=20. Predicate: WHERE
+id > :lastId (or the composite form if you sort by price). Response:
+{ "items": [ ... ], "nextCursor": "eyJpZCI6MTI4N30=", "hasNext": true }
+2. nextCursor = base64 of the last row's sort key; null when hasNext is false.
+3. Rating lookup stays the separate findRatingByRoomIds query — now over just 20 i
+
+Files: RoomController, RoomService.getRooms, RoomQueryRepository(Impl), new RoomCaper.
+
+Phase 3 — Backend map endpoint (points-or-clusters hybrid)
+
+New GET /api/rooms/map?south&west&north&east&...filters...&cols=24.
+
+Service logic:
+1. Run a COUNT(*) over the bbox+filters (index-backed, fast).
+2. If count ≤ POINT_THRESHOLD (e.g. 500): return mode="points" with a slim list [{e, rating}]. The existing client clustering can handle ≤500 fine.
+3. Else return mode="clusters": server-side grid aggregation. Service computes celLng=(east-west)/cols (so buckets ≤ rows*cols ≈ a few hundred regardless of room
+count), then:
+SELECT FLOOR((latitude  - :south)/:cellLat) AS gy,
+       FLOOR((longitude - :west )/:cellLng) AS gx,
+       COUNT(*) AS cnt, AVG(latitude) AS lat, AVG(longitude) AS lng,
+       MIN(price_per_night) AS min_price, MAX(price_per_night) AS max_price
+FROM rooms
+WHERE latitude BETWEEN :south AND :north
+  AND longitude BETWEEN :west AND :east
+  AND is_active AND NOT is_deleted
+  -- + the same filter predicates as the list
+GROUP BY gy, gx;
+3. Response: mode="clusters", [{lat, lng, count, minPrice, maxPrice}].
+
+This is cleanest as a small native query (the FLOOR(...) grouping is awkward in Quns.numberTemplate if you prefer to keep it typed). v1 uses a per-viewport grid(simple); if cluster "jumping" on pan bothers you, switch to a fixed global geohash grid per zoom later.
+
+Phase 4 — Frontend split
+
+In MapSearchPage.tsx, replace the single useRoomsQuery with two queries keyed on the same bbox/filters:
+- useRoomListQuery → infinite/paginated, drives the left-hand card list ("load mor
+- useRoomMapQuery → drives RoomResultsMap, sending the current zoom/cols.
+
+In RoomResultsMap:
+- When mode="clusters", render RoomClusterMarker directly from server buckets — death for that case (that's what killed the tab).
+- When mode="points", keep the existing single-pin / light client clustering.
+- Clicking a server cluster zooms in (you already have zoomIntoCluster); the small
+
+Phase 5 — Optional, later: POINT + SPATIAL
+
+Only if Phase 1's plain index proves insufficient at your real scale. Migration sk 4326 NOT NULL generated from lat/lng, backfill, CREATE SPATIAL INDEX, rewrite bbox predicate to MBRContains(ST_MakeEnvelope(...), location). Defer this — don't bundl
+
+---
+Verification checklist
+
+- Phase 1: EXPLAIN ANALYZE C1 shows index range scan, not table scan.
+- Phase 3: nationwide bbox map call returns in well under a second with ≤ a few hundred buckets and bounded payload (KB, not MB).
+- Phase 2: list page response is constant-size regardless of total matches.
+- Frontend: pan/zoom across all of Korea on 1.1M rows — no freeze, no renderer crash.
+
+Decisions I need from you before coding
+
+1. List sort order — id (simplest, v1) or price/recommended (nicer UX, slightly mo
+2. POINT_THRESHOLD for points-vs-clusters — I'd start at 500. OK?
+3. POINT/SPATIAL now or deferred — I strongly recommend deferred (Phase 5). Agree?
+If you're happy with this shape, tell me your answers to those three and I'll star order (Phase 0 → 1 → 2 → 3 → 4), each as its own commit so you can verify theEXPLAIN/latency win at each step. Want me to proceed?

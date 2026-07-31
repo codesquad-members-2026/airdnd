@@ -1,0 +1,181 @@
+/* ?숈냼 ?ъ쭊 媛ㅻ윭由?(RoomGallery) ???몃씪???ㅽ??쇱뿉??異붿텧, 媛??숈씪 */
+.room-gallery {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  height: 500px;
+  margin-bottom: 48px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #f7f7f7;
+}
+
+/* 異붽? ?ъ쭊???놁쑝硫?????ъ쭊????덈퉬濡?*/
+.room-gallery.solo {
+  grid-template-columns: 1fr;
+}
+
+.room-gallery-hero {
+  width: 100%;
+  height: 100%;
+}
+
+.room-gallery-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 異붽? ?ъ쭊 洹몃━????媛쒖닔???곕씪 ???됱쓣 ?곸쓳?쒖폒 鍮?移몄쓣 ?놁븻??*/
+.room-gallery-side {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+.room-gallery-side.cols-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.room-gallery-side.rows-2 {
+  grid-template-rows: repeat(2, 1fr);
+}
+
+.room-gallery-side-cell {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.room-gallery-more {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #222;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #222;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+
+/* ?곸꽭 ?섏씠吏 紐⑤떖 怨듯넻 ?ㅻ뜑/?ㅽ겕濡?(媛ㅻ윭由?룹냼媛쑣룻렪?섏떆?ㅼ뿉??怨듭쑀) */
+.detail-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.detail-modal-head__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background-color: #f7f7f7;
+  color: #222;
+}
+
+.detail-modal-head__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #222;
+}
+
+.detail-modal-scroll {
+  max-height: min(72vh, 640px);
+  overflow-y: auto;
+  padding-top: 20px;
+  padding-right: 4px;
+}
+
+.detail-modal-scroll.sm {
+  max-height: min(60vh, 520px);
+}
+
+.detail-modal-scroll.md {
+  max-height: min(64vh, 560px);
+}
+
+.gallery-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.gallery-modal-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #f7f7f7;
+  cursor: zoom-in;
+}
+
+/* ?쇱씠?몃컯?????먮낯 鍮꾩쑉 ?꾩껜 蹂닿린 */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+.lightbox__close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+}
+
+.lightbox__img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: default;
+}
+
+.lightbox__counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+}
+

@@ -22,8 +22,13 @@ public class MemberController {
 
     @GetMapping("/auth/me")
     public ResponseEntity<CurrentUserResponse> getCurrentUserInfo(@AuthenticationPrincipal AuthMemberPrincipal principal){
-       Member targetMember = service.getCurrentMember(principal.getMemberId());
-       return ResponseEntity.ok(CurrentUserResponse.of(targetMember, principal.getAvatarUrl()));
+        if(principal == null){
+            return ResponseEntity.ok(null);
+        }
+        else{
+            Member targetMember = service.getCurrentMember(principal.getMemberId());
+            return ResponseEntity.ok(CurrentUserResponse.of(targetMember, principal.getAvatarUrl()));
+        }
     }
 
     @PostMapping("/members/me/host-activation")

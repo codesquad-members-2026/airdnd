@@ -149,7 +149,11 @@
   "maxGuests": 4,
   "imageUrl": "https://example.com/room.jpg",
   "imageUrls": ["https://example.com/room-2.jpg", "https://example.com/room-3.jpg"],
+  "allowsInfants": false,
   "allowsPets": false,
+  "countryCode": "KR",
+  "latitude": 37.5446,
+  "longitude": 127.0557,
   "amenities": ["와이파이", "주방"]
 }
 ```

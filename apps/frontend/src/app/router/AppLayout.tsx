@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, Heart, Home, LogOut, Map, Menu, ShieldCheck, UserRound } from 'lucide-react';
 import {
@@ -7,20 +7,58 @@ import {
   useLogoutMutation,
 } from '../../features/auth/api/authQueries';
 import { canAccessAdmin, canAccessHost, getRoleLabel } from '../../features/auth/lib/authAccess';
+import { NotificationBell } from '../../features/notifications/ui/NotificationBell';
+import { useNotificationStream } from '../../features/notifications/api/notificationStream';
+
+// 라우트(Outlet 자식)로 내려주는 레이아웃 컨텍스트. 지도 페이지가 헤더 검색 슬롯에 포털할 때 사용한다.
+export type AppLayoutContext = {
+  headerSearchSlot: HTMLElement | null;
+};
 
 export function AppLayout() {
   const { data: user } = useCurrentUserQuery();
+  // 로그인 상태에서만 SSE 연결을 유지한다(로그아웃 시 자동 해제).
+  useNotificationStream(Boolean(user));
   const logoutMutation = useLogoutMutation();
   const hostActivationMutation = useHostActivationMutation();
   const navigate = useNavigate();
   const location = useLocation();
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  // 지도 페이지에서 검색바를 헤더 중앙에 끼워 넣기 위한 포털 대상. MapSearchPage 가 이 슬롯으로 검색바를 렌더한다.
+  const [headerSearchSlot, setHeaderSearchSlot] = useState<HTMLDivElement | null>(null);
   const hasHostAccess = user ? canAccessHost(user.role) : false;
   const hasAdminAccess = user ? canAccessAdmin(user.role) : false;
+  // 지도 검색 페이지는 지도/숙소만 전체 화면으로 보여주므로 하단 푸터를 숨긴다.
+  const isMapPage = location.pathname === '/rooms/map';
+  const accountMenuRef = useRef<HTMLDivElement>(null);
 
   function closeAccountMenu() {
     setIsAccountMenuOpen(false);
   }
+
+  // 계정 메뉴가 열려 있을 때, 메뉴 바깥(다른 네비 링크 등)을 누르면 닫는다. 메뉴를 연 채로
+  // 다른 페이지로 이동해도 계속 열려 있는 문제를 막는다(링크 클릭=바깥 pointerdown → 닫힘).
+  useEffect(() => {
+    if (!isAccountMenuOpen) {
+      return;
+    }
+    function handlePointerDown(event: PointerEvent) {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+        setIsAccountMenuOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsAccountMenuOpen(false);
+      }
+    }
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isAccountMenuOpen]);
 
   function handleStartHosting() {
     // 비로그인: 로그인 페이지로 이동 (로그인 후 원래 위치로 복귀)
@@ -52,32 +90,38 @@ export function AppLayout() {
           <span className="brand-mark">A</span>
           AirDnD
         </Link>
-        <nav className="site-nav" aria-label="주요 메뉴">
-          <NavLink to="/" end>
-            <Home size={16} />
-            숙소
-          </NavLink>
-          <NavLink to="/rooms/map">
-            <Map size={16} />
-            지도
-          </NavLink>
-          {user ? <NavLink to="/reservations">예약</NavLink> : null}
-          {user ? (
-            <NavLink to="/wishlists">
-              <Heart size={16} />
-              위시리스트
+        {isMapPage ? (
+          // 지도 페이지: 내비게이션 자리에 검색바 슬롯을 둔다(검색바는 MapSearchPage 가 포털로 채움).
+          <div className="header-search" ref={setHeaderSearchSlot} />
+        ) : (
+          <nav className="site-nav" aria-label="주요 메뉴">
+            <NavLink to="/" end>
+              <Home size={16} />
+              숙소
             </NavLink>
-          ) : null}
-          {hasHostAccess ? <NavLink to="/host/rooms">호스트</NavLink> : null}
-          {hasAdminAccess ? (
-            <NavLink to="/admin">
-              <ShieldCheck size={16} />
-              관리자
+            <NavLink to="/rooms/map">
+              <Map size={16} />
+              지도
             </NavLink>
-          ) : null}
-        </nav>
+            {user ? <NavLink to="/reservations">예약</NavLink> : null}
+            {user ? (
+              <NavLink to="/wishlists">
+                <Heart size={16} />
+                위시리스트
+              </NavLink>
+            ) : null}
+            {hasHostAccess ? <NavLink to="/host/rooms">호스트</NavLink> : null}
+            {hasAdminAccess ? (
+              <NavLink to="/admin">
+                <ShieldCheck size={16} />
+                관리자
+              </NavLink>
+            ) : null}
+          </nav>
+        )}
         <div className="header-actions">
-          {!hasHostAccess ? (
+          {/* 지도 페이지에서는 우측을 알림 + 계정 버튼만 남기므로 호스팅 CTA 를 숨긴다. */}
+          {!isMapPage && !hasHostAccess ? (
             <button
               className="host-cta"
               type="button"
@@ -87,7 +131,8 @@ export function AppLayout() {
               {hostActivationMutation.isPending ? '전환 중...' : '호스팅 시작하기'}
             </button>
           ) : null}
-          <div className={`account-menu ${isAccountMenuOpen ? 'open' : ''}`}>
+          {user ? <NotificationBell /> : null}
+          <div className={`account-menu ${isAccountMenuOpen ? 'open' : ''}`} ref={accountMenuRef}>
             <button
               className="account-menu-trigger"
               type="button"
@@ -158,8 +203,9 @@ export function AppLayout() {
         </div>
       </header>
       <main className="page-container">
-        <Outlet />
+        <Outlet context={{ headerSearchSlot } satisfies AppLayoutContext} />
       </main>
+      {isMapPage ? null : (
       <footer className="site-footer">
         <div className="footer-grid">
           <section>
@@ -204,6 +250,7 @@ export function AppLayout() {
           <span>개인정보 처리방침 · 이용약관 · 사이트맵</span>
         </div>
       </footer>
+      )}
     </div>
   );
 }

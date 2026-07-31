@@ -1,0 +1,277 @@
+/* ?숈냼 ?곸꽭 ?섏씠吏 ?덉씠?꾩썐 (RoomDetailPage) */
+.room-detail-page {
+  min-height: 100vh;
+  margin-top: -40px;
+  padding-top: 0;
+  background-color: #fff;
+}
+
+.room-detail-page__inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.room-detail-divider {
+  margin: 0 0 32px;
+  border: none;
+  border-top: 1px solid #ddd;
+}
+
+.room-detail-divider.wide {
+  margin: 48px 0;
+}
+
+.room-detail-main {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 372px;
+  gap: 80px;
+}
+
+.room-detail-aside {
+  position: relative;
+}
+
+.room-detail-sticky {
+  position: sticky;
+  top: 100px;
+}
+
+.room-detail-reviews {
+  padding-top: 16px;
+  padding-bottom: 48px;
+}
+
+/* ?곸꽭 ?ㅻ뜑 (RoomDetailHeader) */
+.room-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-top: 12px;
+}
+
+.room-detail-header__title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 500;
+  color: #222;
+}
+
+.room-detail-header__actions {
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.room-detail-header__share {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ?숈냼 媛쒖슂 (RoomOverview) */
+.room-overview {
+  margin-bottom: 28px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid #ddd;
+}
+
+.room-overview-host {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.room-overview-host__avatar {
+  flex-shrink: 0;
+  padding: 7px;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  color: #717171;
+}
+
+.room-overview-host__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+}
+
+.room-overview-review {
+  margin-bottom: 20px;
+}
+
+.room-overview-highlights {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.room-highlight {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.room-highlight__icon {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: center;
+  width: 28px;
+  color: #222;
+}
+
+.room-highlight__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.room-highlight__desc {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: #717171;
+}
+
+/* ?숈냼 ?뚭컻 (RoomDescription) */
+.room-description {
+  margin-bottom: 32px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #ddd;
+}
+
+.room-description__title {
+  margin-bottom: 14px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.room-description__text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #222;
+  white-space: pre-line;
+}
+
+.room-description__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 12px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #222;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.room-description__full {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #3a3a3a;
+  white-space: pre-line;
+}
+
+/* ?숈냼 ?몄쓽?쒖꽕 (RoomAmenities) */
+.room-amenities__title {
+  margin-bottom: 24px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.room-amenities-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.amenity-tile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid #ebebeb;
+  border-radius: 14px;
+  background-color: #fff;
+  color: #222;
+  font-size: 16px;
+}
+
+.amenity-tile__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background-color: #f7f7f7;
+  color: #222;
+}
+
+/* ?곸꽭 ?섏씠吏 '紐⑤몢 蹂닿린' 踰꾪듉 (?몄쓽?쒖꽕쨌?꾧린?먯꽌 怨듭쑀) */
+.detail-more-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: fit-content;
+  margin-top: 24px;
+  padding: 13px 23px;
+  border: 1px solid #222;
+  border-radius: 8px;
+  background: none;
+  color: #222;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  justify-self: start;
+}
+
+/* ?꾧린 ?붾낫湲?踰꾪듉? ???щ갚??醫곴쾶 */
+.detail-more-button.tight {
+  margin-top: 4px;
+}
+
+.amenity-modal-head {
+  margin-bottom: 4px;
+  padding-bottom: 20px;
+  padding-right: 36px;
+  border-bottom: 1px solid #ebebeb;
+  font-size: 20px;
+  font-weight: 700;
+  color: #222;
+}
+
+/* ?숈냼 ?꾩튂 (RoomLocation) */
+.room-location {
+  margin-bottom: 32px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #ddd;
+}
+
+.room-location__title {
+  margin-bottom: 8px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.room-location__address {
+  margin: 0 0 24px;
+  font-size: 16px;
+  color: #222;
+}
+

@@ -25,15 +25,40 @@ export async function request<TResponse>(path: string, options: RequestOptions =
   }
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : undefined;
 
   if (!response.ok) {
-    const body: ApiErrorBody = data ?? {
-      code: 'UNKNOWN_ERROR',
-      message: '알 수 없는 오류가 발생했습니다.',
-    };
-    throw new ApiError(response.status, body);
+    throw new ApiError(response.status, parseErrorBody(text));
   }
 
-  return data as TResponse;
+  return (text ? JSON.parse(text) : undefined) as TResponse;
+}
+
+function parseErrorBody(text: string): ApiErrorBody {
+  const fallback: ApiErrorBody = {
+    code: 'UNKNOWN_ERROR',
+    message: '알 수 없는 오류가 발생했습니다.',
+  };
+
+  if (!text) {
+    return fallback;
+  }
+
+  try {
+    const data: unknown = JSON.parse(text);
+
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      'code' in data &&
+      typeof data.code === 'string' &&
+      'message' in data &&
+      typeof data.message === 'string'
+    ) {
+      return data as ApiErrorBody;
+    }
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
 }

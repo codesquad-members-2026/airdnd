@@ -1,11 +1,15 @@
-import { FormEvent, MouseEvent, useState } from 'react';
-import { ChevronLeft, ChevronRight, Minus, PawPrint, Plus, Search } from 'lucide-react';
+import { FormEvent, MouseEvent, useEffect, useRef, useState } from 'react';
+import { Minus, PawPrint, Plus, Search } from 'lucide-react';
 import { formatCurrency } from '../../../shared/lib/format';
+import { formatDateSummary, getMonthStart, parseDateValue, toDateValue } from '../../../shared/lib/calendar';
+import { CalendarPopover } from '../../../shared/ui/CalendarPopover';
 import { RoomSearchParams } from '../model/roomTypes';
 
 type SearchBarProps = {
   defaultValue: RoomSearchParams;
   onSearch: (params: RoomSearchParams) => void;
+  // 헤더 등 좁은 영역에 들어가는 축소형 검색바(높이/폰트 축소). 지도 페이지 헤더에서 사용.
+  compact?: boolean;
 };
 
 type OccupancyKey = 'adults' | 'children' | 'infants';
@@ -20,11 +24,23 @@ type OpenPanel = 'checkIn' | 'checkOut' | 'price' | 'occupancy' | null;
 const PRICE_MIN = 0;
 const PRICE_MAX = 500000;
 const PRICE_STEP = 10000;
-const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+// 가격 분포를 막대 히스토그램으로 표현하기 위한 더미 분포(우측으로 꼬리가 긴 형태)
+const PRICE_HISTOGRAM_BUCKETS = 34;
+const PRICE_HISTOGRAM = Array.from({ length: PRICE_HISTOGRAM_BUCKETS }, (_, index) => {
+  const position = index / (PRICE_HISTOGRAM_BUCKETS - 1);
+  const peak = Math.exp(-(((position - 0.26) / 0.16) ** 2));
+  const tail = Math.exp(-(((position - 0.58) / 0.36) ** 2)) * 0.32;
+  return peak + tail;
+});
+const PRICE_HISTOGRAM_MAX = Math.max(...PRICE_HISTOGRAM);
+
+// 성인 + 아동 합계 상한 (백엔드 RoomSearchRequestDTO 의 guests @Max(8) 와 일치).
+// 유아(infants)는 인원 수에 포함되지 않고 별도 필터로만 사용됩니다.
+const MAX_STAY_GUESTS = 8;
 
 const occupancyLabels: Record<OccupancyKey, OccupancyRule> = {
-  adults: { title: '성인', description: '만 13세 이상, 최대 8명', min: 1, max: 8 },
-  children: { title: '아동', description: '만 2-12세, 최대 8명', min: 0, max: 8 },
+  adults: { title: '성인', description: '만 13세 이상 · 성인·아동 합산 최대 8명', min: 1, max: 8 },
+  children: { title: '아동', description: '만 2-12세 · 성인·아동 합산 최대 8명', min: 0, max: 8 },
   infants: { title: '유아', description: '만 2세 미만, 최대 8명', min: 0, max: 8 },
 };
 
@@ -33,76 +49,27 @@ function clampOccupancyValue(key: OccupancyKey, value: number) {
   return Math.min(rule.max ?? Number.POSITIVE_INFINITY, Math.max(rule.min, value));
 }
 
-function toDateValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function parseDateValue(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const [year, month, day] = value.split('-').map(Number);
-
-  if (!year || !month || !day) {
-    return null;
-  }
-
-  return new Date(year, month - 1, day);
-}
-
-function formatDateSummary(value: string, fallback: string) {
-  const date = parseDateValue(value);
-
-  if (!date) {
-    return fallback;
-  }
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    month: 'short',
-    day: 'numeric',
-  }).format(date);
-}
-
-function getMonthStart(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function addMonths(date: Date, amount: number) {
-  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
-}
-
-function getCalendarDays(monthStart: Date) {
-  const start = new Date(monthStart);
-  start.setDate(1 - start.getDay());
-
-  return Array.from({ length: 42 }, (_, index) => {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-    return date;
-  });
-}
-
-export function SearchBar({ defaultValue, onSearch }: SearchBarProps) {
+export function SearchBar({ defaultValue, onSearch, compact = false }: SearchBarProps) {
   const [region, setRegion] = useState(defaultValue.region ?? '');
   const [checkIn, setCheckIn] = useState(defaultValue.checkIn ?? '');
   const [checkOut, setCheckOut] = useState(defaultValue.checkOut ?? '');
   const [calendarMonth, setCalendarMonth] = useState(
     getMonthStart(parseDateValue(defaultValue.checkIn ?? '') ?? new Date()),
   );
-  const [adults, setAdults] = useState(
-    clampOccupancyValue('adults', defaultValue.adults ?? defaultValue.guests ?? 1),
+  const initialAdults = clampOccupancyValue('adults', defaultValue.adults ?? defaultValue.guests ?? 1);
+  const [adults, setAdults] = useState(initialAdults);
+  // 성인 + 아동 합계가 8을 넘지 않도록 초기값(예: URL 파라미터)도 남은 인원으로 제한합니다.
+  const [children, setChildren] = useState(
+    Math.min(clampOccupancyValue('children', defaultValue.children ?? 0), MAX_STAY_GUESTS - initialAdults),
   );
-  const [children, setChildren] = useState(clampOccupancyValue('children', defaultValue.children ?? 0));
   const [infants, setInfants] = useState(clampOccupancyValue('infants', defaultValue.infants ?? 0));
   const [minPrice, setMinPrice] = useState(defaultValue.minPrice ?? PRICE_MIN);
   const [maxPrice, setMaxPrice] = useState(defaultValue.maxPrice ?? PRICE_MAX);
   const [allowsPets, setAllowsPets] = useState(defaultValue.allowsPets ?? false);
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
+  const todayValue = toDateValue(new Date());
   const stayGuests = adults + children;
   const hasPriceFilter = minPrice > PRICE_MIN || maxPrice < PRICE_MAX;
   const selectedCheckIn = parseDateValue(checkIn);
@@ -117,6 +84,32 @@ export function SearchBar({ defaultValue, onSearch }: SearchBarProps) {
   const priceSummary = hasPriceFilter
     ? `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`
     : '가격 범위';
+
+  useEffect(() => {
+    if (!openPanel) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (formRef.current && !formRef.current.contains(event.target as Node)) {
+        setOpenPanel(null);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setOpenPanel(null);
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openPanel]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -135,7 +128,23 @@ export function SearchBar({ defaultValue, onSearch }: SearchBarProps) {
     setOpenPanel(null);
   }
 
+  function canIncrementOccupancy(key: OccupancyKey) {
+    const rule = occupancyLabels[key];
+    const current = { adults, children, infants }[key];
+    if (rule.max !== undefined && current >= rule.max) {
+      return false;
+    }
+    // 성인 + 아동 합계는 8명을 넘을 수 없습니다(유아는 인원 수에 포함되지 않음).
+    if ((key === 'adults' || key === 'children') && stayGuests >= MAX_STAY_GUESTS) {
+      return false;
+    }
+    return true;
+  }
+
   function updateOccupancy(key: OccupancyKey, direction: 1 | -1) {
+    if (direction === 1 && !canIncrementOccupancy(key)) {
+      return;
+    }
     const setters = {
       adults: setAdults,
       children: setChildren,
@@ -210,6 +219,7 @@ export function SearchBar({ defaultValue, onSearch }: SearchBarProps) {
   }
 
   function isDateDisabled(value: string) {
+    if (value < todayValue) return true;
     return openPanel === 'checkOut' && Boolean(checkIn && value <= checkIn);
   }
 
@@ -240,7 +250,7 @@ export function SearchBar({ defaultValue, onSearch }: SearchBarProps) {
   }
 
   return (
-    <form className="search-bar" onSubmit={handleSubmit}>
+    <form className={`search-bar${compact ? ' search-bar--compact' : ''}`} onSubmit={handleSubmit} ref={formRef}>
       <label className="search-field">
         지역
         <input value={region} onChange={(event) => setRegion(event.target.value)} placeholder="서울" />
@@ -312,12 +322,19 @@ export function SearchBar({ defaultValue, onSearch }: SearchBarProps) {
               </div>
               <span>{priceSummary}</span>
             </div>
-            <div className="price-distribution" aria-hidden="true">
-              <svg viewBox="0 0 390 132" role="presentation">
-                <path className="price-distribution-muted" d="M22 105 C54 105 69 101 92 100 C118 99 128 91 140 75 C150 60 158 76 171 57 C183 40 183 10 190 10 C197 10 199 45 210 58 C221 71 228 66 235 86 C243 108 260 108 282 103 C299 99 312 106 332 108 C354 111 369 112 379 112" />
-                <path className="price-distribution-active" d="M22 105 C54 105 69 101 92 100 C118 99 128 91 140 75 C150 60 158 76 171 57 C183 40 183 10 190 10 C197 10 199 45 210 58 C221 71 228 66 235 86 C243 108 260 108 282 103 C299 99 312 106 332 108 C354 111 369 112 379 112 L379 112 L22 112 Z" />
-                <path className="price-distribution-line" d="M22 112 H379" />
-              </svg>
+            <div className="price-histogram" aria-hidden="true">
+              {PRICE_HISTOGRAM.map((value, index) => {
+                const bucketPrice = (index / (PRICE_HISTOGRAM_BUCKETS - 1)) * PRICE_MAX;
+                const isActive = bucketPrice >= minPrice && bucketPrice <= maxPrice;
+
+                return (
+                  <span
+                    key={index}
+                    className={`price-histogram-bar${isActive ? ' active' : ''}`}
+                    style={{ height: `${Math.max((value / PRICE_HISTOGRAM_MAX) * 100, 8)}%` }}
+                  />
+                );
+              })}
             </div>
             <div
               className="range-slider"
@@ -419,10 +436,7 @@ export function SearchBar({ defaultValue, onSearch }: SearchBarProps) {
                     className="stepper-button"
                     aria-label={`${occupancyLabels[key].title} 증가`}
                     onClick={() => updateOccupancy(key, 1)}
-                    disabled={
-                      occupancyLabels[key].max !== undefined &&
-                      { adults, children, infants }[key] >= occupancyLabels[key].max
-                    }
+                    disabled={!canIncrementOccupancy(key)}
                   >
                     <Plus size={14} />
                   </button>
@@ -449,95 +463,5 @@ export function SearchBar({ defaultValue, onSearch }: SearchBarProps) {
         검색
       </button>
     </form>
-  );
-}
-
-type CalendarPopoverProps = {
-  activePanel: 'checkIn' | 'checkOut';
-  month: Date;
-  selectedCheckIn: Date | null;
-  selectedCheckOut: Date | null;
-  onMonthChange: (date: Date) => void;
-  onSelectDate: (value: string) => void;
-  isDateDisabled: (value: string) => boolean;
-  isDateInRange: (value: string) => boolean;
-  isDateSelected: (value: string) => boolean;
-};
-
-function CalendarPopover({
-  activePanel,
-  month,
-  selectedCheckIn,
-  selectedCheckOut,
-  onMonthChange,
-  onSelectDate,
-  isDateDisabled,
-  isDateInRange,
-  isDateSelected,
-}: CalendarPopoverProps) {
-  const months = [month, addMonths(month, 1)];
-
-  return (
-    <div className="search-popover calendar-popover">
-      <div className="calendar-popover-header">
-        <div>
-          <strong>{activePanel === 'checkIn' ? '체크인 날짜 선택' : '체크아웃 날짜 선택'}</strong>
-          <span>
-            {selectedCheckIn ? formatDateSummary(toDateValue(selectedCheckIn), '체크인') : '체크인'} -{' '}
-            {selectedCheckOut ? formatDateSummary(toDateValue(selectedCheckOut), '체크아웃') : '체크아웃'}
-          </span>
-        </div>
-        <div className="calendar-nav">
-          <button type="button" aria-label="이전 달" onClick={() => onMonthChange(addMonths(month, -1))}>
-            <ChevronLeft size={18} />
-          </button>
-          <button type="button" aria-label="다음 달" onClick={() => onMonthChange(addMonths(month, 1))}>
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
-      <div className="calendar-months">
-        {months.map((monthStart) => (
-          <section className="calendar-month" key={toDateValue(monthStart)}>
-            <h3>
-              {new Intl.DateTimeFormat('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-              }).format(monthStart)}
-            </h3>
-            <div className="calendar-weekdays" aria-hidden="true">
-              {WEEKDAY_LABELS.map((label) => (
-                <span key={label}>{label}</span>
-              ))}
-            </div>
-            <div className="calendar-grid">
-              {getCalendarDays(monthStart).map((date) => {
-                const value = toDateValue(date);
-                const isOutsideMonth = date.getMonth() !== monthStart.getMonth();
-
-                return (
-                  <button
-                    type="button"
-                    className={[
-                      'calendar-day',
-                      isOutsideMonth ? 'outside' : '',
-                      isDateSelected(value) ? 'selected' : '',
-                      isDateInRange(value) ? 'in-range' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    key={value}
-                    disabled={isOutsideMonth || isDateDisabled(value)}
-                    onClick={() => onSelectDate(value)}
-                  >
-                    {date.getDate()}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
-    </div>
   );
 }

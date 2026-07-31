@@ -1,10 +1,16 @@
 # macOS
 .DS_Store
 
+**/*.pkg
 # IDE
 .idea/
+**/.txt
 
+*.txt
 .vscode/
+
+# Claude Code 로컬 설정
+.claude/settings.local.json
 
 .idea/modules.xml
 
@@ -46,3 +52,4 @@ docker-compose.override.yml
 *.zip
 *.tar
 *.tar.gz
+explain.txt

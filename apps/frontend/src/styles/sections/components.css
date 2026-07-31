@@ -1,0 +1,138 @@
+.detail-description {
+  margin-bottom: 0;
+  color: var(--text-secondary);
+  line-height: var(--line-normal);
+  white-space: pre-line;
+}
+
+.amenity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-5);
+}
+
+.amenity-item {
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+}
+
+.reservation-panel,
+.auth-card,
+.info-card,
+.metric-card,
+.form-grid {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-16);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow-md);
+}
+
+.reservation-panel {
+  position: sticky;
+  top: calc(var(--header-height) + 24px);
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-6);
+}
+
+.auth-card {
+  display: grid;
+  gap: var(--space-5);
+  width: min(480px, 100%);
+  margin: var(--space-12) auto 0;
+  padding: var(--space-8);
+}
+
+.button-group.vertical {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.state-box {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  background: var(--surface-subtle);
+}
+
+.state-box.error {
+  border-color: rgba(201, 52, 73, 0.25);
+  background: var(--color-danger-soft);
+}
+
+.state-box.success {
+  border-color: rgba(17, 137, 23, 0.25);
+  background: var(--color-success-soft);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--color-gray-200);
+  border-top-color: var(--color-brand);
+  border-radius: 999px;
+  animation: spin 800ms linear infinite;
+}
+
+.field-error {
+  color: var(--color-danger);
+  font-size: var(--font-size-13);
+  font-weight: 700;
+}
+
+.price-summary,
+.reservation-item,
+.info-card dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.price-summary {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.tag-list {
+  flex-wrap: wrap;
+}
+
+.tag,
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-14);
+  font-weight: 750;
+}
+
+.status-badge {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+}
+
+.status-badge--success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.status-badge--warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.status-badge--danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.status-badge--neutral {
+  background: var(--surface-subtle);
+  color: var(--text-tertiary);
+}
+

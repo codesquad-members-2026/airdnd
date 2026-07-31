@@ -1,0 +1,433 @@
+/* 알림 페이지 — 디자인 키트 ui_kits/web/Notifications.html 기반.
+ * 헤더/내비게이션은 header.css(AppLayout)에서 처리하고,
+ * 헤더 벨/드롭다운만 이 파일에서 추가로 정의합니다. */
+
+/* 제목/탭은 다른 페이지와 동일하게 컨테이너 폭을 그대로 사용(좌측 정렬).
+ * 폭 제한은 아래 .notif-list 에서 목록에만 적용한다. */
+.notifications-page {
+  width: 100%;
+}
+
+/* ---------- 헤더 벨 ---------- */
+.header-bell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--text-primary);
+}
+.header-bell:hover {
+  background: var(--surface-subtle);
+}
+.header-bell__count {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  border: 1.5px solid #fff;
+}
+
+/* ---------- 알림 드롭다운 ---------- */
+/* 벨 버튼 + 드롭다운 래퍼 — 바깥 클릭 감지용 컨테이너.
+   display:inline-flex 로 기존 버튼과 동일한 헤더 레이아웃을 유지한다. */
+.notif-bell {
+  display: inline-flex;
+  align-items: center;
+}
+.notif-dropdown {
+  position: fixed;
+  top: calc(var(--header-height) + 8px);
+  right: max(24px, calc((100vw - var(--container)) / 2));
+  width: 380px;
+  max-height: calc(100vh - var(--header-height) - 40px);
+  background: var(--color-white);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-16);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.13),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+.notif-dropdown.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.notif-dropdown__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex: none;
+}
+.notif-dropdown__title {
+  font-size: var(--font-size-18);
+  font-weight: 800;
+}
+.notif-dropdown__mark {
+  background: none;
+  font-size: var(--font-size-13);
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 140ms ease;
+}
+.notif-dropdown__mark:hover {
+  color: var(--text-primary);
+}
+.notif-dropdown__body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 6px 0;
+}
+.notif-dropdown__item {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 14px 20px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 130ms ease;
+}
+.notif-dropdown__item:hover {
+  background: var(--surface-subtle);
+}
+.notif-dropdown__item-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.notif-dropdown__item-icon--reservation {
+  background: rgba(232, 76, 96, 0.12);
+  color: var(--color-brand);
+}
+.notif-dropdown__item-icon--system,
+.notif-dropdown__item-icon--host {
+  background: rgba(34, 150, 138, 0.14);
+  color: #22968a;
+}
+.notif-dropdown__item-icon--review {
+  background: rgba(245, 180, 40, 0.16);
+  color: #d99412;
+}
+.notif-dropdown__item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 2px;
+}
+.notif-dropdown__item-msg {
+  font-size: var(--font-size-14);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.notif-dropdown__item.unread .notif-dropdown__item-msg {
+  font-weight: 700;
+}
+.notif-dropdown__item-time {
+  font-size: var(--font-size-13);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.notif-dropdown__item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  margin-top: 7px;
+  flex: none;
+}
+.notif-dropdown__empty {
+  padding: var(--space-10) 0;
+  text-align: center;
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.notif-dropdown__footer {
+  border-top: 1px solid var(--border-subtle);
+  padding: 14px 20px;
+  flex: none;
+}
+.notif-dropdown__all-link {
+  display: block;
+  text-align: center;
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: opacity 140ms ease;
+}
+.notif-dropdown__all-link:hover {
+  opacity: 0.6;
+}
+
+@media (max-width: 920px) {
+  .notif-dropdown {
+    width: calc(100vw - 32px);
+    right: 16px;
+  }
+}
+
+/* ---------- 제목 + 모두 읽음 ---------- */
+.notif-head-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+.notif-mark-all {
+  background: none;
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  transition: opacity 160ms ease;
+}
+.notif-mark-all:hover {
+  opacity: 0.6;
+}
+
+/* ---------- 탭 ---------- */
+.notif-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-2);
+}
+.notif-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 0 4px;
+  margin-right: var(--space-6);
+  margin-bottom: -1px;
+  background: none;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-15);
+  font-weight: 600;
+  border-bottom: 2px solid transparent;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.notif-tab:hover {
+  color: var(--text-primary);
+}
+.notif-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--text-primary);
+}
+.notif-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* ---------- 목록 (호스트 예약 현황 카드와 동일한 결) ---------- */
+.notif-list {
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+/* 한 건 = 아이콘 칩 + 본문 + 우측(안읽음 점/시간) 3열 카드.
+   왼쪽 테두리 색으로 알림 타입을 한눈에 구분한다. */
+.notif-card {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-left: 4px solid var(--border-strong);
+  border-radius: var(--radius-16);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+.notif-card--clickable {
+  cursor: pointer;
+}
+.notif-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.notif-card:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* 타입별 좌측 컬러바 — 아이콘 칩 색과 같은 계열 */
+.notif-card--reservation {
+  border-left-color: var(--color-brand);
+}
+.notif-card--host,
+.notif-card--system {
+  border-left-color: #22968a;
+}
+.notif-card--review {
+  border-left-color: #d99412;
+}
+
+/* 안 읽은 알림은 빨강으로 또렷하게 강조 — 좌측바·배경을 danger 톤으로 덮는다(타입색보다 우선). */
+.notif-card.is-unread {
+  border-left-color: var(--color-danger);
+}
+
+/* 읽은 알림은 차분하게 가라앉힌다 */
+.notif-card.is-read {
+  background: var(--surface-subtle);
+  box-shadow: none;
+}
+.notif-card.is-read .notif-card__title {
+  color: var(--text-secondary);
+}
+
+/* 타입 아이콘 칩 */
+.notif-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.notif-icon--reservation {
+  background: rgba(232, 76, 96, 0.12);
+  color: var(--color-brand);
+}
+.notif-icon--host,
+.notif-icon--system {
+  background: rgba(34, 150, 138, 0.14);
+  color: #22968a;
+}
+.notif-icon--review {
+  background: rgba(245, 180, 40, 0.16);
+  color: #d99412;
+}
+
+/* 본문 */
+.notif-card__info {
+  min-width: 0;
+}
+.notif-card__title {
+  margin: 0;
+  font-size: var(--font-size-15);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+.notif-card__message {
+  margin: 2px 0 0;
+  font-size: var(--font-size-14);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  /* 길면 두 줄까지만 보여주고 말줄임 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+/* 아직 안 읽은 알림은 메시지도 진하게 강조 */
+.notif-card.is-unread .notif-card__message {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* 우측: 안읽음 점 + 상대 시간 */
+.notif-card__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  text-align: right;
+}
+.notif-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-danger);
+}
+.notif-card__time {
+  font-size: var(--font-size-13);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .notif-card {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: var(--space-3);
+  }
+  .notif-icon {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* ---------- 빈 상태 ---------- */
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-16) 0;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+.notif-empty svg {
+  opacity: 0.4;
+}
+.notif-empty p {
+  font-size: var(--font-size-16);
+  font-weight: 600;
+}

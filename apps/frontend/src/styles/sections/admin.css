@@ -1,0 +1,157 @@
+.info-card {
+  padding: var(--space-6);
+}
+
+.info-card dl {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.info-card dt {
+  color: var(--text-tertiary);
+}
+
+.info-card dd {
+  margin: 0;
+  font-weight: 850;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  padding: var(--space-6);
+}
+
+.full-row {
+  grid-column: 1 / -1;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.metric-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-6);
+}
+
+.metric-card span {
+  color: var(--text-tertiary);
+}
+
+.metric-card strong {
+  font-size: var(--font-size-32);
+}
+
+.table-card {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-16);
+  background: var(--color-white);
+  box-shadow: var(--shadow-md);
+}
+
+.table-card table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.table-card th,
+.table-card td {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table-card th {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-13);
+  text-transform: uppercase;
+}
+
+.table-card p {
+  margin-bottom: 0;
+}
+
+.map-layout {
+  display: grid;
+  /* 목록 / 지도를 화면 절반씩 차지하도록 균등 분할(지도를 크게) */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.map-result-card,
+.message-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-16);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.map-result-card img {
+  width: 124px;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-12);
+  object-fit: cover;
+}
+
+.map-result-card h2,
+.message-card h2 {
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-18);
+}
+
+.map-panel {
+  position: sticky;
+  top: calc(var(--header-height) + 24px);
+  min-height: 620px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-20);
+  background:
+    linear-gradient(90deg, rgba(209, 209, 213, 0.4) 1px, transparent 1px),
+    linear-gradient(rgba(209, 209, 213, 0.4) 1px, transparent 1px),
+    linear-gradient(135deg, #edf9ee, #f7f7f8 48%, #fff1f3);
+  background-size:
+    48px 48px,
+    48px 48px,
+    auto;
+  box-shadow: var(--shadow-md);
+}
+
+.map-marker {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px solid rgba(24, 24, 27, 0.12);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--text-primary);
+  font-size: var(--font-size-13);
+  font-weight: 850;
+  box-shadow: var(--shadow-md);
+}
+
+.message-card {
+  justify-content: space-between;
+}
+
+.message-card > div {
+  flex: 1;
+}
+

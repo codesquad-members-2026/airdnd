@@ -1,0 +1,48 @@
+#!/bin/bash
+# mysql-user-data.sh.tftpl — first-boot bootstrap for the dedicated MySQL box.
+#
+# Rendered by Terraform (mysql.tf). Note: $${...} are TERRAFORM template values;
+# bash variables are written WITHOUT braces (e.g. $DATA_DEV) so Terraform does
+# not try to interpolate them.
+#
+# It: installs Docker, formats+mounts the dedicated EBS data volume on first
+# boot only, then runs mysql:8.4 with the exact same flags as your local
+# docker-compose.yml so behaviour matches dev.
+set -euxo pipefail
+
+dnf update -y
+dnf install -y docker
+systemctl enable --now docker
+systemctl enable --now amazon-ssm-agent
+
+# --- Find the attached data volume (NVMe name varies on Nitro) -------------
+DATA_DEV=""
+for d in /dev/sdf /dev/xvdf /dev/nvme1n1; do
+  if [ -b "$d" ]; then DATA_DEV="$d"; break; fi
+done
+
+# Format ONLY if the volume has no filesystem yet (so reboots keep data).
+if [ -n "$DATA_DEV" ] && ! blkid "$DATA_DEV"; then
+  mkfs -t xfs "$DATA_DEV"
+fi
+
+mkdir -p /mnt/mysql-data
+if [ -n "$DATA_DEV" ]; then
+  mount "$DATA_DEV" /mnt/mysql-data
+  # nofail so a missing volume never blocks boot.
+  echo "$DATA_DEV /mnt/mysql-data xfs defaults,nofail 0 2" >> /etc/fstab
+fi
+
+# --- Run MySQL 8.4 (mirrors docker-compose.yml) ----------------------------
+docker run -d --name ${db_name}-mysql --restart unless-stopped \
+  -p 3306:3306 \
+  -e MYSQL_DATABASE='${db_name}' \
+  -e MYSQL_USER='${db_user}' \
+  -e MYSQL_PASSWORD='${db_password}' \
+  -e MYSQL_ROOT_PASSWORD='${db_root_password}' \
+  -e TZ=Asia/Seoul \
+  -v /mnt/mysql-data:/var/lib/mysql \
+  mysql:8.4 \
+  --character-set-server=utf8mb4 \
+  --collation-server=utf8mb4_0900_ai_ci \
+  --init-connect='SET NAMES utf8mb4'

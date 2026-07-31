@@ -24,8 +24,12 @@ export function CreateWishlistButton() {
 
   if (!isOpen) {
     return (
-      <button type="button" className="secondary-button" onClick={() => setIsOpen(true)}>
-        <Plus size={16} />새 위시리스트
+      <button
+        type="button"
+        className="primary-button inline-action"
+        onClick={() => setIsOpen(true)}
+      >
+        <Plus size={18} strokeWidth={2.4} aria-hidden />새 위시리스트
       </button>
     );
   }

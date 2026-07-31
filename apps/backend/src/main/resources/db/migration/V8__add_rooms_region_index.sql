@@ -1,0 +1,11 @@
+-- Region search (?region=...) previously compiled to `lower(region) LIKE '%term%'`:
+-- a leading-wildcard, function-wrapped predicate that no B-tree index can serve.
+-- Since region was the only selective filter, every region search degenerated to a
+-- full table scan (~1M rows) to return a handful of matches.
+--
+-- The predicate is now a sargable prefix match (`region LIKE 'term%'`, see
+-- RoomPredicates.regionStartsWith), which this index turns into a range seek.
+-- The table collation is utf8mb4_unicode_ci (case-insensitive), so the match stays
+-- case-insensitive without wrapping the column in lower() -- which would otherwise
+-- defeat this index.
+CREATE INDEX idx_rooms_region ON rooms (region);

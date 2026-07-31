@@ -1,0 +1,391 @@
+/* 蹂꾩젏 ?쒖떆 (StarRating) ???됱젏留뚰겮 梨꾩썙吏?蹂꾩쓣 媛濡쒕줈 ?섎씪 ?㏃튌 */
+.star-rating {
+  position: relative;
+  display: inline-flex;
+}
+
+.star-rating svg {
+  flex-shrink: 0;
+}
+
+.star-rating__base {
+  display: inline-flex;
+  gap: 2px;
+  color: #dddddd;
+}
+
+.star-rating__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  gap: 2px;
+  overflow: hidden;
+  color: #222;
+}
+
+/* ?꾧린 ?붿빟 踰꾪듉 (RoomReviewSummaryButton) */
+.review-summary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border: 1px solid #222;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #222;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* '?먯뼱?붿뿏???좎젙' 諛곕꼫 ?뺥깭 (媛濡??꾩껜) */
+.review-summary-btn.full {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  padding: 18px 22px;
+}
+
+.review-summary__left {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  line-height: 1.35;
+}
+
+.review-summary__eyebrow {
+  font-size: 13px;
+  font-weight: 500;
+  color: #717171;
+}
+
+.review-summary__headline {
+  font-size: 17px;
+  font-weight: 700;
+  color: #222;
+}
+
+.review-summary__right {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.review-summary__metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.review-summary__value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #222;
+  line-height: 1;
+}
+
+.review-summary__divider {
+  width: 1px;
+  height: 36px;
+  background-color: #dddddd;
+}
+
+.review-summary__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #222;
+  text-decoration: underline;
+}
+
+.review-summary__dot {
+  color: #717171;
+  font-weight: 500;
+}
+
+.review-summary__count {
+  text-decoration: underline;
+}
+
+/* ?꾩껜 ?꾧린 紐⑤떖 (ReviewList) */
+.review-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 4px;
+  padding-bottom: 20px;
+  padding-right: 36px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.review-modal-head__rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #222;
+}
+
+.review-modal-list {
+  display: grid;
+}
+
+/* ?꾧린 ?ъ씠 援щ텇????泥??됱? ???щ갚, 留덉?留??됱? ?꾨옒 ?щ갚/???쒓굅 */
+.review-modal-list > .review-modal-row {
+  padding: 28px 0;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.review-modal-list > .review-modal-row:first-child {
+  padding-top: 0;
+}
+
+.review-modal-list > .review-modal-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* ?꾧린 ?뺣젹 ?쒕∼?ㅼ슫 (ReviewSortDropdown) */
+.review-sort {
+  position: relative;
+}
+
+.review-sort__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #222;
+  border-radius: 24px;
+  background: #fff;
+  color: #222;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-sort__chevron {
+  transition: transform 150ms;
+}
+
+.review-sort__trigger[aria-expanded='true'] .review-sort__chevron {
+  transform: rotate(180deg);
+}
+
+.review-sort__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 10;
+  min-width: 200px;
+  padding: 8px;
+  border: 1px solid #ebebeb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(24, 24, 27, 0.18);
+}
+
+.review-sort__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #222;
+  font-size: 14px;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+}
+
+.review-sort__option:hover {
+  background: #f7f7f7;
+}
+
+.review-sort__option.selected {
+  font-weight: 700;
+}
+
+/* 후기 작성 모달 (ReservationList) */
+.review-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.review-modal__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 36px;
+}
+
+.review-modal__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #222;
+}
+
+.review-modal__room {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #717171;
+}
+
+.review-modal__room strong {
+  color: #222;
+}
+
+/* 후기 등록 완료 화면 (모달 안) */
+.review-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 16px 8px;
+}
+
+.review-done__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #ff385c;
+  color: #fff;
+}
+
+.review-done__title {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #222;
+}
+
+.review-done__desc {
+  margin: 0;
+  font-size: 15px;
+  color: #717171;
+}
+
+.review-done__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* 이미 후기를 작성한 예약의 완료 표시 (ReservationList) */
+.reservation-review-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #717171;
+}
+
+.reservation-review-done svg {
+  color: #ff385c;
+}
+
+/* 작성 폼 (ReviewForm) */
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.review-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.review-form__label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #222;
+}
+
+.review-form textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #b0b0b0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.review-form textarea:focus {
+  outline: none;
+  border-color: #222;
+}
+
+.review-form__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.review-form__count {
+  margin-left: auto;
+  font-size: 13px;
+  color: #717171;
+}
+
+/* 별점 선택 (StarRatingInput) */
+.star-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.star-input__stars {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.star-input__star {
+  padding: 2px;
+  border: none;
+  background: none;
+  line-height: 0;
+  cursor: pointer;
+  color: #ff385c;
+}
+
+.star-input__star:disabled {
+  cursor: default;
+}
+
+.star-input__star .is-on {
+  color: #ff385c;
+}
+
+.star-input__star .is-off {
+  color: #dddddd;
+}
+
+.star-input__label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+}
+

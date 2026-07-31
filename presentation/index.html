@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AirDnD — 성능 최적화 사례</title>
+
+<!-- Fonts: Space Grotesk (display) + JetBrains Mono (labels/data) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+/* ===========================================
+   THEME — "Telemetry Dark"  (edit tokens to retheme)
+   =========================================== */
+:root{
+  --stage-bg:#06080d; --slide-bg:#0B0E14;
+  --panel:#11161f; --panel-2:#161c27;
+  --line:rgba(120,140,170,.18); --line-strong:rgba(120,140,170,.34);
+  --text:#E6E9EF; --muted:#8A95AB; --dim:#5d6781;
+  --accent:#E84C60; --accent-soft:rgba(232,76,96,.16);
+  --good:#39d98a;
+  --font-display:'Space Grotesk',sans-serif; --font-mono:'JetBrains Mono',monospace;
+}
+*{ margin:0; padding:0; box-sizing:border-box; }
+
+/* ===========================================
+   FIXED 16:9 STAGE — mandatory base (viewport-base.css)
+   =========================================== */
+html,body{ width:100%; height:100%; margin:0; overflow:hidden; background:var(--stage-bg,#000); }
+.deck-viewport{ position:fixed; inset:0; overflow:hidden; background:var(--stage-bg,#000); }
+.deck-stage{ position:absolute; left:0; top:0; width:1920px; height:1080px; overflow:hidden; transform-origin:0 0; background:var(--slide-bg,#fff); }
+.slide{ position:absolute; inset:0; width:1920px; height:1080px; overflow:hidden; display:block; visibility:hidden; opacity:0; pointer-events:none; background:var(--slide-bg,#fff); }
+.slide.active,.slide.visible{ visibility:visible; opacity:1; pointer-events:auto; z-index:1; }
+img,video,canvas,svg{ max-width:100%; max-height:100%; }
+.deck-controls{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:1000; }
+@media print{
+  html,body{ width:1920px; height:auto; overflow:visible; background:#fff; }
+  .deck-viewport{ position:static; overflow:visible; background:#fff; }
+  .deck-stage{ position:static; width:auto; height:auto; transform:none !important; background:none; }
+  .slide{ position:relative; display:block !important; visibility:visible !important; opacity:1 !important; pointer-events:auto !important; width:1920px; height:1080px; break-after:page; page-break-after:always; }
+  .slide:last-child{ break-after:auto; page-break-after:auto; }
+  .frag{ opacity:1 !important; transform:none !important; }
+  .deck-controls{ display:none !important; }
+}
+@media (prefers-reduced-motion:reduce){ *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.2s !important; } }
+
+/* ===========================================
+   SHARED SLIDE SKIN — graph-paper canvas + chrome
+   =========================================== */
+.slide{ color:var(--text); font-family:var(--font-display);
+  background:radial-gradient(1400px 900px at 85% -15%, rgba(232,76,96,.10), transparent 60%), var(--slide-bg);
+  padding:90px 96px 84px; }
+.slide::before{ content:""; position:absolute; inset:0;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px), linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:80px 80px; pointer-events:none; opacity:.6; }
+.kicker{ font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.14em; color:var(--accent); font-size:24px; font-weight:700; }
+.kicker::before{ content:"› "; }
+h2.title{ font-size:78px; font-weight:700; letter-spacing:-2px; line-height:1.0; margin-top:18px; }
+h2.title .ac{ color:var(--accent); }
+.lead{ color:var(--muted); font-size:30px; font-weight:500; margin-top:18px; max-width:1300px; line-height:1.35; }
+.footmark{ position:absolute; left:96px; right:96px; bottom:46px; display:flex; justify-content:space-between;
+  font-family:var(--font-mono); font-size:19px; letter-spacing:.1em; color:var(--dim); text-transform:uppercase; }
+.footmark .pg b{ color:var(--text); }
+.blockmark{ display:inline-grid; grid-template-columns:repeat(2,9px); grid-template-rows:repeat(2,9px); gap:3px; vertical-align:middle; margin-right:12px; }
+.blockmark i{ background:var(--muted); display:block; } .blockmark i:nth-child(2){ background:var(--accent); }
+
+/* cards / chips */
+.card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:34px 36px; }
+.card .ch{ font-family:var(--font-mono); font-size:18px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); }
+.card h3{ font-size:34px; font-weight:700; margin:10px 0 10px; }
+.card p{ font-size:25px; color:var(--muted); line-height:1.4; }
+.card p code, code.m{ font-family:var(--font-mono); color:var(--text); background:rgba(255,255,255,.05); padding:1px 8px; border-radius:6px; font-size:21px; }
+.chip{ border:1px solid var(--line-strong); border-radius:999px; padding:14px 26px; font-family:var(--font-mono); font-size:22px; color:var(--text); background:rgba(255,255,255,.02); }
+.metric{ border:1px solid var(--line); border-radius:14px; padding:22px 30px; background:var(--panel); }
+.metric .k{ font-family:var(--font-mono); font-size:17px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+.metric .v{ font-family:var(--font-mono); font-size:46px; font-weight:700; margin-top:8px; }
+.metric .v .b{ color:var(--accent); } .metric .v .g{ color:var(--good); } .metric .v .ar{ color:var(--accent); }
+.chart-card{ background:#fff; border-radius:16px; padding:14px; box-shadow:0 24px 60px rgba(0,0,0,.45); }
+.chart-card img{ display:block; width:100%; height:100%; object-fit:contain; }
+
+/* ===========================================
+   REVEAL (entry) + FRAG (click-stepped)
+   =========================================== */
+.reveal{ opacity:0; transform:translateY(30px); transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
+.slide.visible .reveal{ opacity:1; transform:none; }
+.slide.visible .reveal.d1{ transition-delay:.10s } .slide.visible .reveal.d2{ transition-delay:.22s }
+.slide.visible .reveal.d3{ transition-delay:.34s } .slide.visible .reveal.d4{ transition-delay:.46s }
+.frag{ opacity:0; transform:translateY(26px); transition:opacity .5s cubic-bezier(.16,1,.3,1), transform .5s cubic-bezier(.16,1,.3,1); }
+.frag.shown{ opacity:1; transform:none; }
+
+/* layout helpers */
+.big-stat{ font-family:var(--font-mono); font-weight:700; letter-spacing:-2px; line-height:1; }
+.cols{ display:grid; gap:34px; margin-top:40px; }
+.c2{ grid-template-columns:1fr 1fr; } .c3{ grid-template-columns:repeat(3,1fr); } .c4{ grid-template-columns:repeat(4,1fr); }
+.split{ display:grid; grid-template-columns:1.05fr 1fr; gap:48px; margin-top:36px; align-items:start; }
+.split-r{ grid-template-columns:1fr 1.15fr; }
+.stack{ display:flex; flex-direction:column; gap:20px; }
+
+/* TITLE slide */
+.title-slide .curve{ position:absolute; inset:0; }
+.title-slide .line{ stroke:var(--accent); stroke-width:4; fill:none; filter:drop-shadow(0 0 12px rgba(232,76,96,.6)); stroke-dasharray:1700; stroke-dashoffset:1700; }
+.title-slide.visible .line{ animation:draw 1.9s ease forwards .5s; }
+@keyframes draw{ to{ stroke-dashoffset:0 } }
+.title-slide .hero{ position:absolute; left:96px; top:300px; }
+.title-slide h1{ font-size:196px; font-weight:700; letter-spacing:-5px; line-height:.9; }
+.title-slide h1 .ac{ color:var(--accent); }
+.title-slide .sub{ font-size:38px; color:var(--muted); font-weight:500; margin-top:28px; line-height:1.3; }
+.title-slide .chips-row{ position:absolute; left:96px; bottom:150px; display:flex; gap:18px; }
+
+/* DIVIDER slide */
+.divider{ display:flex; flex-direction:column; justify-content:center; }
+.divider .part{ font-family:var(--font-mono); font-size:30px; letter-spacing:.2em; color:var(--accent); text-transform:uppercase; }
+.divider h2{ font-size:200px; font-weight:700; letter-spacing:-5px; line-height:.9; margin-top:6px; }
+.divider .desc{ font-size:34px; color:var(--muted); margin-top:30px; max-width:1200px; line-height:1.35; }
+.divider .rail{ position:absolute; left:0; top:0; bottom:0; width:14px; background:var(--accent); box-shadow:0 0 40px rgba(232,76,96,.6); }
+.divider .idx{ position:absolute; right:120px; top:50%; transform:translateY(-50%); font-family:var(--font-mono); font-weight:700; font-size:520px; color:rgba(232,76,96,.10); line-height:1; }
+
+/* flow (system) */
+.flow{ display:flex; align-items:center; flex-wrap:wrap; }
+.node{ background:var(--panel); border:1px solid var(--line-strong); border-radius:14px; padding:22px 28px; min-width:210px; }
+.node .t{ font-size:27px; font-weight:700; } .node .s{ font-family:var(--font-mono); font-size:17px; color:var(--muted); margin-top:6px; }
+.arrow{ color:var(--accent); font-size:38px; padding:0 18px; }
+.side-row{ display:flex; gap:18px; margin-top:26px; flex-wrap:wrap; }
+.domains{ display:flex; flex-wrap:wrap; gap:14px; margin-top:14px; max-width:1500px; }
+.dchip{ border:1px solid var(--line); border-radius:12px; padding:16px 24px; background:var(--panel); font-family:var(--font-mono); font-size:24px; }
+.dchip b{ color:var(--accent); }
+
+/* steps */
+.steps{ counter-reset:s; display:flex; flex-direction:column; gap:18px; }
+.step{ display:flex; gap:20px; align-items:flex-start; }
+.step .n{ counter-increment:s; font-family:var(--font-mono); font-weight:700; color:var(--accent); font-size:26px; min-width:42px; }
+.step .n::before{ content:counter(s); }
+.step .tx{ font-size:26px; line-height:1.35; } .step .tx b{ color:var(--text); } .step .tx span{ color:var(--muted); }
+
+/* callout */
+.callout{ border-left:4px solid var(--accent); background:var(--accent-soft); border-radius:0 14px 14px 0; padding:26px 32px; }
+.callout .k{ font-family:var(--font-mono); font-size:18px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); }
+.callout p{ font-size:28px; margin-top:8px; line-height:1.4; }
+
+/* lock-timeline (slide 결제①) */
+.lockbar{ font-family:var(--font-mono); }
+.lockbar .row{ display:flex; align-items:center; margin:10px 0; height:46px; border-radius:8px; overflow:hidden; border:1px solid var(--line); }
+.seg{ height:100%; display:flex; align-items:center; padding:0 16px; font-size:18px; white-space:nowrap; }
+.seg.lock{ background:rgba(232,76,96,.25); color:#ffd9df; } .seg.pp{ background:rgba(120,140,170,.18); color:var(--muted); flex:1; }
+
+/* artifact panels — terminal (EXPLAIN) + code diff (QueryDSL) */
+.term{ background:#070a10; border:1px solid var(--line-strong); border-radius:14px; overflow:hidden; }
+.term .bar{ background:#10151e; padding:11px 16px; display:flex; gap:8px; align-items:center; border-bottom:1px solid var(--line); }
+.term .bar i{ width:12px; height:12px; border-radius:50%; display:block; } .term .bar i.r{ background:#E84C60 } .term .bar i.y{ background:#E6C13D } .term .bar i.g{ background:#39d98a }
+.term .bar span{ font-family:var(--font-mono); font-size:15px; color:var(--dim); margin-left:8px; letter-spacing:.06em; }
+.term .body{ padding:22px 26px; font-family:var(--font-mono); font-size:19px; line-height:1.65; color:#cdd6e4; white-space:pre; }
+.term .body .cmd{ color:var(--muted); } .term .body .hl{ color:var(--accent); font-weight:700; }
+.term .body .ok{ color:var(--good); font-weight:700; }
+.code{ background:#070a10; border:1px solid var(--line-strong); border-radius:14px; padding:20px 24px; font-family:var(--font-mono); font-size:18.5px; line-height:1.55; }
+.code .del{ color:#ffb3bd; background:rgba(232,76,96,.12); border-radius:6px; padding:3px 10px; display:block; }
+.code .del::before{ content:"- "; color:var(--accent); }
+.code .add{ color:#a6f2cd; background:rgba(57,217,138,.12); border-radius:6px; padding:3px 10px; display:block; margin-top:4px; }
+.code .add::before{ content:"+ "; color:var(--good); }
+.code .cm{ color:var(--dim); display:block; margin:14px 0 4px; }
+.cap{ font-size:22px; color:var(--muted); margin-top:16px; } .cap b{ color:var(--text); }
+
+/* PRESENTER NOTES panel (N) */
+#notes{ position:fixed; right:0; top:0; bottom:0; width:520px; background:#0a0d13; border-left:1px solid var(--line-strong); z-index:2000; transform:translateX(100%); transition:transform .3s ease; padding:40px 34px; overflow:auto; }
+#notes.open{ transform:none; }
+#notes h4{ font-family:var(--font-mono); font-size:16px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); }
+#notes .nt{ color:var(--text); font-size:23px; line-height:1.6; margin-top:18px; white-space:pre-wrap; }
+#notes .meta{ font-family:var(--font-mono); color:var(--dim); font-size:15px; margin-top:30px; }
+
+/* chrome */
+.progress{ position:fixed; left:0; top:0; height:4px; background:var(--accent); z-index:1500; width:0; transition:width .3s ease; box-shadow:0 0 12px var(--accent); }
+.hint{ position:fixed; left:50%; transform:translateX(-50%); bottom:16px; font-family:var(--font-mono); font-size:14px; color:var(--dim); z-index:1500; letter-spacing:.08em; transition:opacity .6s ease; background:rgba(6,8,13,.6); padding:6px 16px; border-radius:999px; }
+.hint.hide{ opacity:0; pointer-events:none; }
+
+/* inline edit */
+.edit-hotzone{ position:fixed; top:0; left:0; width:80px; height:80px; z-index:10000; cursor:pointer; }
+.edit-toggle{ position:fixed; top:18px; left:18px; z-index:10001; opacity:0; pointer-events:none; transition:opacity .3s ease; background:var(--panel); color:var(--text); border:1px solid var(--line-strong); border-radius:10px; font-size:20px; padding:8px 12px; cursor:pointer; }
+.edit-toggle.show,.edit-toggle.active{ opacity:1; pointer-events:auto; } .edit-toggle.active{ background:var(--accent); color:#fff; }
+body.editing [contenteditable]{ outline:1px dashed var(--accent); outline-offset:4px; border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<div class="deck-viewport">
+  <main class="deck-stage" id="deckStage">
+
+    <!-- ===== SLIDE 1 — TITLE ===== -->
+    <section class="slide title-slide active visible">
+      <svg class="curve" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+        <path class="line" d="M1100,330 C1290,330 1320,560 1470,720 C1555,812 1700,860 1840,868"/>
+      </svg>
+      <div class="kicker reveal d1" style="position:absolute;left:96px;top:210px;">측정으로 진단한 병목</div>
+      <div class="hero">
+        <h1 class="reveal d2">Air<span class="ac">DnD</span></h1>
+        <div class="sub reveal d3">100만 건 검색과 결제 동시성을<br>EXPLAIN과 부하 테스트로 풀어낸 성능 최적화 사례</div>
+      </div>
+      <div class="chips-row">
+        <div class="metric reveal d3"><div class="k">검색 응답</div><div class="v">7s <span class="ar">→</span> <span class="g">~ms</span></div></div>
+        <div class="metric reveal d4"><div class="k">결제 성공률</div><div class="v">1/5 <span class="ar">→</span> <span class="g">5/5</span></div></div>
+        <div class="metric reveal d4"><div class="k">락 타임아웃</div><div class="v">4 <span class="ar">→</span> <span class="g">0</span></div></div>
+      </div>
+      <div class="footmark"><span><span class="blockmark"><i></i><i></i><i></i><i></i></span>SPRING BOOT · QUERYDSL · MYSQL 8.4 · AWS</span><span class="pg">2026 · 기술 발표</span></div>
+    </section>
+
+    <!-- ===== SLIDE 2 — SYSTEM & DOMAINS ===== -->
+    <section class="slide">
+      <div class="kicker reveal d1">시스템 한눈에</div>
+      <h2 class="title reveal d1">아키텍처 & <span class="ac">도메인</span></h2>
+      <div class="flow frag" style="margin-top:46px;">
+        <div class="node"><div class="t">React / Vite</div><div class="s">CloudFront + S3</div></div><span class="arrow">→</span>
+        <div class="node"><div class="t">Nginx</div><div class="s">reverse proxy · HTTPS</div></div><span class="arrow">→</span>
+        <div class="node"><div class="t">Spring Boot 3</div><div class="s">EC2 · QueryDSL</div></div><span class="arrow">→</span>
+        <div class="node"><div class="t">MySQL 8.4</div><div class="s">self-managed · EC2</div></div>
+      </div>
+      <div class="side-row frag">
+        <div class="chip">ECR</div><div class="chip">GitHub Actions · OIDC</div><div class="chip">Prometheus / Grafana</div><div class="chip">Terraform IaC</div><div class="chip">k6 부하 테스트</div>
+      </div>
+      <div class="frag">
+        <div class="kicker" style="margin-top:46px;">8개 도메인 경계</div>
+        <div class="domains">
+          <div class="dchip"><b>·</b> room</div><div class="dchip"><b>·</b> auth</div><div class="dchip"><b>·</b> reservation</div><div class="dchip"><b>·</b> payment</div>
+          <div class="dchip"><b>·</b> notification</div><div class="dchip"><b>·</b> review</div><div class="dchip"><b>·</b> wishlist</div><div class="dchip"><b>·</b> user</div>
+        </div>
+      </div>
+      <div class="footmark"><span>AIRDND / 시스템</span><span class="pg"><b>01</b> / 11</span></div>
+    </section>
+
+    <!-- ===== DIVIDER — PART 1 검색 ===== -->
+    <section class="slide divider">
+      <div class="rail"></div>
+      <div class="idx">01</div>
+      <div class="part reveal d1">Part 01 — 검색 성능</div>
+      <h2 class="reveal d2">검색</h2>
+      <div class="desc reveal d3">100만 건에서 숙소 하나를 찾는 데<br>왜 <span style="color:var(--accent)">7초</span>가 걸렸나 — 그리고 어떻게 ms로 줄였나</div>
+    </section>
+
+    <!-- ===== SLIDE — 검색 ① 증상 + 진단 ===== -->
+    <section class="slide">
+      <div class="kicker reveal d1">검색 ① — 증상과 진단</div>
+      <h2 class="title reveal d1">"100만 중 1개 검색이 <span class="ac">7초</span>"</h2>
+      <div class="split split-r">
+        <div class="reveal d2" style="display:flex;flex-direction:column;justify-content:center;height:520px;">
+          <div class="big-stat" style="font-size:300px;color:var(--accent);">7<span style="font-size:120px;">s</span></div>
+          <div class="lead" style="margin-top:0;">한 개의 느린 검색처럼 보였지만<br>사실 <b style="color:var(--text)">여러 문제가 쌓여</b> 있었다</div>
+        </div>
+        <div class="stack">
+          <div class="card frag"><div class="ch">Layer 1 · 풀스캔</div><h3>비-sargable LIKE</h3><p>region 검색이 <code>LIKE '%term%'</code> + <code>lower()</code> → B-tree 인덱스를 못 탐</p></div>
+          <div class="card frag"><div class="ch">Layer 1 · 인덱스 부재</div><h3>region 인덱스가 없었다</h3><p>유일한 선별 필터인데 인덱스 자체가 없어 매 검색이 ~1M행 스캔</p></div>
+          <div class="card frag"><div class="ch">Layer 3 · PK 워크</div><h3>ORDER BY id … LIMIT</h3><p>MySQL을 PK 워크로 유도 → 매칭이 희소하면 사실상 전체 스캔</p></div>
+        </div>
+      </div>
+      <div class="footmark"><span>AIRDND / 검색 성능</span><span class="pg"><b>02</b> / 11</span></div>
+    </section>
+
+    <!-- ===== SLIDE — 검색 ② 공간 인덱스 ===== -->
+    <section class="slide">
+      <div class="kicker reveal d1">검색 ② — 공간 인덱스로 전환</div>
+      <h2 class="title reveal d1">1D 인덱스로는 <span class="ac">2D 문제</span>를 못 푼다</h2>
+      <div class="split">
+        <div class="stack">
+          <div class="card frag"><div class="ch">전환</div><h3>POINT + R-tree SPATIAL</h3><p>위·경도를 공간 컬럼으로 묶고 공간 인덱스 적용 <code>V9 → V10</code></p></div>
+          <div class="card frag"><div class="ch">함정 ①</div><h3>SRID 0 제약 필수</h3><p>컬럼을 <code>SRID 0</code>으로 제약해야 MySQL이 공간 인덱스를 사용</p></div>
+          <div class="card frag"><div class="ch">함정 ②</div><h3>술어는 bare로 emit</h3><p><code>MBRContains(...)=1</code>로 감싸면 옵티마이저가 못 봄 → 그냥 풀스캔</p></div>
+        </div>
+        <div class="frag" style="display:flex;flex-direction:column;justify-content:center;height:560px;align-items:center;">
+          <div class="big-stat" style="font-size:150px;"><span style="color:var(--accent)">7s</span> <span style="color:var(--accent)">→</span> <span style="color:var(--good)">~ms</span></div>
+          <div class="lead" style="text-align:center;">두 함정을 고치자<br>검색 응답이 <b style="color:var(--good)">밀리초</b> 단위로</div>
+        </div>
+      </div>
+      <div class="footmark"><span>AIRDND / 검색 성능</span><span class="pg"><b>03</b> / 11</span></div>
+    </section>
+
+    <!-- ===== SLIDE — 검색 아티팩트: EXPLAIN / QueryDSL ===== -->
+    <section class="slide">
+      <div class="kicker reveal d1">검색 — 증거 · 추측이 아니라 측정</div>
+      <h2 class="title reveal d1">실제 <span class="ac">EXPLAIN</span> & 한 줄 <span class="ac">QueryDSL</span> 차이</h2>
+      <div class="cols c2" style="margin-top:34px;align-items:start;">
+        <div class="frag">
+          <div class="term">
+            <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>mysql — EXPLAIN (개선 전)</span></div>
+<div class="body"><span class="cmd">mysql&gt; EXPLAIN SELECT * FROM rooms</span>
+<span class="cmd">        WHERE  &lt;bbox&gt; AND is_active AND ...;</span>
+
+ type   key    rows         Extra
+ <span class="hl">ALL</span>    <span class="hl">NULL</span>   <span class="hl">1,096,657</span>    Using where
+
+ -&gt; Table scan on rooms
+    (actual rows=1.1e6)  <span class="hl">0.47s</span></div>
+          </div>
+          <div class="cap"><b>모든 검색이 110만 행 풀스캔</b> — key=NULL, type=ALL</div>
+        </div>
+        <div class="frag">
+          <div class="code">
+<span class="cm">// region 검색 — 한 줄 차이</span>
+<span class="del">room.region.containsIgnoreCase(region)  // LIKE '%term%'</span>
+<span class="add">room.region.startsWith(region)          // LIKE 'term%'</span>
+<span class="cm">// → idx_rooms_region 사용 (sargable prefix)</span>
+
+<span class="cm">// 공간 술어는 bare로 emit (=1로 감싸지 않음)</span>
+<span class="add">mbrcontains(ST_GeomFromText({0}, 0), room.location)</span>
+<span class="cm">// → idx_rooms_location 사용</span>
+          </div>
+          <div class="cap">한 줄이 <b>풀스캔이냐 인덱스냐</b>를 가른다</div>
+        </div>
+      </div>
+      <div class="footmark"><span>AIRDND / 검색 성능</span><span class="pg"><b>04</b> / 11</span></div>
+    </section>
+
+    <!-- ===== SLIDE — 검색 ③ 적응형 ===== -->
+    <section class="slide">
+      <div class="kicker reveal d1">검색 ③ — 성숙한 결론</div>
+      <h2 class="title reveal d1">전역 힌트는 <span class="ac">답이 아니었다</span></h2>
+      <div class="cols c2">
+        <div class="card frag"><div class="ch">시도 · FORCE INDEX 등가</div><h3 style="color:var(--good)">빈 / 희소 박스 → ms</h3><p><code>ORDER BY id+0</code> 트릭으로 인덱스를 강제 → 빈 바다 패닝이 밀리초로 개선</p></div>
+        <div class="card frag"><div class="ch">그러나 · 퇴행</div><h3 style="color:var(--accent)">밀집 박스 → 1~2s</h3><p>줌아웃한 밀집 영역이 filesort로 오히려 느려짐 → <b style="color:var(--text)">되돌림</b></p></div>
+      </div>
+      <div class="callout frag" style="margin-top:34px;"><div class="k">왜 한 방에 안 되나</div><p>plain-PK와 filesort는 <b>정반대 병리</b> — 전역 ORDER BY 하나로는 둘 다 이길 수 없다.</p></div>
+      <div class="callout frag" style="margin-top:22px;border-color:var(--good);background:rgba(57,217,138,.12);"><div class="k" style="color:var(--good)">진짜 해법</div><p>박스 크기 · 예상 행 수에 따라 <b>접근 경로를 고르는 적응형</b>. 멋진 힌트가 아니라 올바른 진단.</p></div>
+      <div class="footmark"><span>AIRDND / 검색 성능</span><span class="pg"><b>05</b> / 11</span></div>
+    </section>
+
+    <!-- ===== DIVIDER — PART 2 결제 ===== -->
+    <section class="slide divider">
+      <div class="rail"></div>
+      <div class="idx">02</div>
+      <div class="part reveal d1">Part 02 — 결제 동시성</div>
+      <h2 class="reveal d2">결제</h2>
+      <div class="desc reveal d3">느린 요청 <span style="color:var(--accent)">하나</span>가<br>어떻게 같은 방의 결제 전부를 무너뜨리나</div>
+    </section>
+
+    <!-- ===== SLIDE — 결제 ① 증상 + 원인 ===== -->
+    <section class="slide">
+      <div class="kicker reveal d1">결제 ① — 증상과 원인</div>
+      <h2 class="title reveal d1">느린 결제 1건이 같은 방 결제를 <span class="ac">"실패"</span>시킨다</h2>
+      <div class="split">
+        <div class="stack">
+          <div class="card frag"><div class="ch">근본 원인</div><h3>락을 쥔 채 외부 호출</h3><p><code>capture()</code>가 Room 락(FOR UPDATE)을 쥔 채 동기 PayPal 호출을 끝까지 대기</p></div>
+          <div class="lockbar card frag" style="padding:24px 28px;">
+            <div class="ch" style="margin-bottom:6px;">락 점유 구간</div>
+            <div class="row"><div class="seg lock">lock</div><div class="seg pp">PayPal capture · 3~10s</div><div class="seg lock">commit</div></div>
+            <p style="font-size:21px;color:var(--muted);margin-top:8px;">락 유지(≤10s) <b style="color:var(--accent)">&gt;</b> InnoDB 락 대기(5s) → 대기가 아니라 <b style="color:var(--accent)">실패</b></p>
+          </div>
+        </div>
+        <div class="frag">
+          <div class="kicker" style="font-size:18px;margin-bottom:10px;">순차 도착 · 개선 전 — 5초 절벽</div>
+          <div class="chart-card" style="height:560px;"><img src="charts/06_cliff_before.png" alt="개선 전 5초 절벽 그래프"></div>
+        </div>
+      </div>
+      <div class="footmark"><span>AIRDND / 결제 동시성</span><span class="pg"><b>06</b> / 11</span></div>
+    </section>
+
+    <!-- ===== SLIDE — 결제 ② 해법 + 결과 ===== -->
+    <section class="slide">
+      <div class="kicker reveal d1">결제 ② — 해법과 결과</div>
+      <h2 class="title reveal d1">PayPal 호출을 <span class="ac">락 밖으로</span></h2>
+      <div class="split">
+        <div>
+          <div class="steps frag">
+            <div class="step"><div class="n"></div><div class="tx"><b>짧은 트랜잭션</b> — 락 + 재검증 + <code class="m" style="color:var(--accent)">CAPTURING</code> 마킹 → 커밋과 함께 락 해제</div></div>
+            <div class="step"><div class="n"></div><div class="tx"><b>락 없이 PayPal 호출</b> <span>— 더 이상 Room 락·DB 커넥션을 쥐지 않음</span></div></div>
+            <div class="step"><div class="n"></div><div class="tx"><b>짧은 트랜잭션</b> — 예약 확정 + <code class="m" style="color:var(--good)">CAPTURED</code> + 이벤트</div></div>
+          </div>
+          <div class="callout frag" style="margin-top:26px;"><div class="k">왜 안전한가</div><p>이중예약을 막는 건 Room 락이 아니라 <b>PENDING 홀드</b> — 락을 풀어도 슬롯은 선점됨.</p></div>
+        </div>
+        <div>
+          <div class="chart-card frag" style="height:420px;"><img src="charts/01_success_rate.png" alt="결제 성공률 before/after"></div>
+          <div class="cols c3 frag" style="margin-top:22px;gap:18px;">
+            <div class="metric"><div class="k">결제 성공 (A)</div><div class="v"><span class="b">1/5</span> <span class="ar">→</span> <span class="g">5/5</span></div></div>
+            <div class="metric"><div class="k">락 타임아웃</div><div class="v"><span class="b">4</span> <span class="ar">→</span> <span class="g">0</span></div></div>
+            <div class="metric"><div class="k">예약 락세금</div><div class="v" style="font-size:36px;"><span class="b">4s</span> <span class="ar">→</span> <span class="g">12ms</span></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="footmark"><span>AIRDND / 결제 동시성</span><span class="pg"><b>07</b> / 11</span></div>
+    </section>
+
+    <!-- ===== SLIDE — 절벽 before → after 페이오프 ===== -->
+    <section class="slide">
+      <div class="kicker reveal d1">결제 결과 — 같은 부하, 같은 코드</div>
+      <h2 class="title reveal d1">5초 절벽이 <span class="ac">사라졌다</span></h2>
+      <div class="cols c2" style="margin-top:34px;align-items:start;">
+        <div class="frag">
+          <div class="kicker" style="font-size:18px;margin-bottom:10px;color:var(--accent)">개선 전 — 10건 중 8건 실패</div>
+          <div class="chart-card" style="height:600px;"><img src="charts/06_cliff_before.png" alt="개선 전 절벽"></div>
+        </div>
+        <div class="frag">
+          <div class="kicker" style="font-size:18px;margin-bottom:10px;color:var(--good)">개선 후 — 10건 전부 성공 · ~3초</div>
+          <div class="chart-card" style="height:600px;"><img src="charts/07_cliff_after.png" alt="개선 후 전부 성공"></div>
+        </div>
+      </div>
+      <div class="footmark"><span>AIRDND / 결제 동시성</span><span class="pg"><b>08</b> / 11</span></div>
+    </section>
+
+    <!-- ===== SLIDE — Redis 없이 ===== -->
+    <section class="slide">
+      <div class="kicker reveal d1">외부 의존성 없이</div>
+      <h2 class="title reveal d1">Redis 없이 — <span class="ac">이벤트 기반 + SSE</span></h2>
+      <div class="lead reveal d1">분산락도, 메시지 브로커도 도입하지 않았다 — 둘 다 이미 가진 플랫폼으로</div>
+      <div class="callout frag" style="margin-top:30px;"><div class="k">결제 동시성</div><p>락을 ms로 줄임 → <b>분산락(Redis) 불필요</b>. TTL 락은 capture 중 만료 시 오히려 이중과금 위험.</p></div>
+      <div class="frag">
+        <div class="kicker" style="margin-top:34px;">실시간 알림 · 예약 확정/취소 · 새 리뷰</div>
+        <div class="cols c3" style="margin-top:14px;">
+          <div class="card"><div class="ch">결합 제거</div><h3>이벤트만 발행</h3><p>도메인은 <code>ApplicationEventPublisher</code>로 발행 → 알림 모듈이 구독</p></div>
+          <div class="card"><div class="ch">안전 + 비차단</div><h3>AFTER_COMMIT + @Async</h3><p>롤백 시 오발송 차단 · 예약 응답 비지연 · 백프레셔로 유실 방지</p></div>
+          <div class="card"><div class="ch">단방향 푸시</div><h3>SSE</h3><p>회원별 연결 관리 + 30초 heartbeat로 죽은 연결 정리(메모리 누수 방지)</p></div>
+        </div>
+      </div>
+      <div class="footmark"><span>AIRDND / 아키텍처 결정</span><span class="pg"><b>09</b> / 11</span></div>
+    </section>
+
+    <!-- ===== DIVIDER — PART 3 운영 ===== -->
+    <section class="slide divider">
+      <div class="rail"></div>
+      <div class="idx">03</div>
+      <div class="part reveal d1">Part 03 — 운영</div>
+      <h2 class="reveal d2">운영</h2>
+      <div class="desc reveal d3">이 모든 걸 떠받친<br>코드로 만든 인프라 · 관측 · 검증</div>
+    </section>
+
+    <!-- ===== SLIDE — 운영 엔지니어링 ===== -->
+    <section class="slide">
+      <div class="kicker reveal d1">운영 엔지니어링</div>
+      <h2 class="title reveal d1">코드로 만든 <span class="ac">인프라 · 관측 · 검증</span></h2>
+      <div class="cols c4" style="margin-top:44px;">
+        <div class="card frag"><div class="ch">IaC</div><h3>Terraform</h3><p>EC2 · MySQL · CloudFront · S3 · ECR · IAM(OIDC) · SSM 전부 코드화</p></div>
+        <div class="card frag"><div class="ch">CI/CD</div><h3>GitHub Actions</h3><p>OIDC 키리스 배포 → ECR → EC2. Flyway <code>V1~V11</code> 스키마 버전 관리</p></div>
+        <div class="card frag"><div class="ch">관측성</div><h3>Prometheus + Grafana</h3><p>mysqld-exporter · <code>bottleneck-triage</code> 대시보드로 병목을 측정</p></div>
+        <div class="card frag"><div class="ch">부하 · 장애</div><h3>k6 → OOM 대응</h3><p>실제 검색 패턴 재현. t4g.micro <b style="color:var(--accent)">OOM</b> → t4g.small 리사이즈</p></div>
+      </div>
+      <div class="callout frag" style="margin-top:40px;"><div class="k">현실의 운영</div><p>1GB·swap 0 박스가 부하 중 OOM-killer로 mysqld·SSM까지 죽어 wedge → reboot 복구(데이터는 별도 EBS) 후 스케일업.</p></div>
+      <div class="footmark"><span>AIRDND / 운영</span><span class="pg"><b>10</b> / 11</span></div>
+    </section>
+
+    <!-- ===== SLIDE — 배운 점 + Q&A ===== -->
+    <section class="slide">
+      <div class="kicker reveal d1">마무리</div>
+      <h2 class="title reveal d1">배운 점 — <span class="ac">진단이 핵심</span></h2>
+      <div class="cols c2" style="margin-top:40px;">
+        <div class="card frag"><div class="ch">교훈 ①</div><h3>측정으로 발견했다</h3><p>두 병목 모두 추측이 아니라 EXPLAIN · 부하 테스트 · 대시보드로 찾았다.</p></div>
+        <div class="card frag"><div class="ch">교훈 ②</div><h3>도구 추가가 아닌 트레이드오프 이해</h3><p>검색은 전역 인덱스 힌트를 <b style="color:var(--text)">되돌리고</b> 적응형으로 / 결제·알림은 <b style="color:var(--text)">Redis를 도입하지 않음</b>.</p></div>
+      </div>
+      <div class="frag">
+        <div class="kicker" style="margin-top:40px;">다음 단계</div>
+        <div class="side-row"><div class="chip">박스 크기 기반 적응형 검색</div><div class="chip">DB 스케일 / 스왑</div><div class="chip">캐싱 레이어</div><div class="chip">FULLTEXT 검색</div></div>
+      </div>
+      <div class="frag" style="position:absolute;left:96px;bottom:150px;">
+        <div class="big-stat" style="font-size:90px;">감사합니다 <span style="color:var(--accent)">·</span> Q&amp;A</div>
+        <div class="lead" style="margin-top:8px;font-family:var(--font-mono);font-size:22px;">github.com/airdnd · docs/room-search-performance-investigation.md</div>
+      </div>
+      <div class="footmark"><span>AIRDND / 마무리</span><span class="pg"><b>11</b> / 11</span></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- chrome -->
+<div class="hint" id="hint">← → 이동(단계별) · N 발표자 노트 · F 전체화면 · E 편집</div>
+
+<aside id="notes"><h4>발표자 노트</h4><div class="nt" id="noteText"></div><div class="meta">N 키로 닫기 · 청중에게는 보이지 않습니다</div></aside>
+
+<div class="edit-hotzone" id="editHotzone"></div>
+<button class="edit-toggle" id="editToggle" title="편집 모드 (E)">✏️</button>
+
+<script>
+/* ===========================================
+   PRESENTER NOTES (per slide, incl. dividers & payoff)
+   =========================================== */
+const NOTES = [
+  "AirDnD, 숙소 예약 서비스를 풀스택으로 만들었습니다. 오늘은 기능 나열 대신, 실제로 부딪힌 두 개의 성능 문제 — 100만 건 검색과 결제 동시성 — 를 어떻게 측정하고 풀었는지에 집중하겠습니다.",
+  "프론트는 CloudFront와 S3, 백엔드는 EC2의 Spring Boot, DB는 직접 운영하는 MySQL입니다. 도메인은 8개로 패키지 경계를 나눴고, 동적 검색은 QueryDSL을 씁니다. 이 그림이 오늘 이야기의 지도입니다.",
+  "[전환] 첫 번째 이야기는 검색입니다. 100만 건에서 숙소 하나를 찾는 데 왜 7초가 걸렸는지부터 보겠습니다.",
+  "증상은 단순했습니다. 100만 개 중 1개를 찾는데 7초. 파보니 한 문제가 아니라 여러 개가 쌓여 있었어요. region 검색이 앞뒤 와일드카드 LIKE라 인덱스를 못 탔고, 그 컬럼엔 인덱스조차 없었습니다. 게다가 id 정렬 LIMIT이 MySQL을 PK 워크로 유도해서, 매칭이 드물면 사실상 전체를 훑었습니다.",
+  "핵심은 1차원 인덱스로 2차원 문제를 풀 수 없다는 거였습니다. 그래서 POINT 컬럼에 R-tree 공간 인덱스를 만들었는데, 함정이 둘 있었어요. MySQL은 컬럼을 SRID 0으로 제약해야 공간 인덱스를 쓰고, 술어를 =1로 감싸면 옵티마이저가 못 봐서 그냥 풀스캔합니다. 둘을 고치니 7초가 밀리초로 떨어졌습니다.",
+  "이게 추측이 아니라는 증거입니다. 왼쪽은 실제 EXPLAIN인데, type이 ALL이고 key가 NULL — 110만 행을 통째로 풀스캔합니다. 오른쪽이 코드 변경인데, region 검색을 containsIgnoreCase에서 startsWith로 한 줄 바꾼 게 전부예요. 앞 와일드카드 LIKE는 인덱스를 못 타지만 prefix LIKE는 idx_rooms_region을 탑니다. 공간 술어도 마찬가지로, =1로 감싸지 않고 bare mbrcontains로 내보내야 옵티마이저가 인덱스를 씁니다. 한 줄 차이가 풀스캔이냐 인덱스냐를 가릅니다.",
+  "여기서 욕심을 냈습니다. 인덱스를 강제하는 트릭을 넣었더니 빈 바다 같은 희소 영역은 밀리초로 빨라졌어요. 그런데 완전히 줌아웃한 밀집 영역이 1~2초 filesort로 오히려 느려졌습니다. 그래서 되돌렸어요. 두 경우는 정반대 병리라 전역 정렬 하나로는 둘 다 못 이깁니다. 진짜 답은 영역 크기에 따라 경로를 고르는 적응형이라는 결론입니다. 멋진 힌트가 아니라 올바른 진단이 핵심이었습니다.",
+  "[전환] 두 번째 이야기는 결제 동시성입니다. 여기선 느린 요청 하나가 어떻게 다른 요청들을 무너뜨리는지 보겠습니다.",
+  "capture가 방 행을 비관적으로 잠근 채 외부 PayPal 호출을 끝까지 기다렸어요. 문제는 PayPal 타임아웃이 10초인데 InnoDB 락 대기는 5초라는 점입니다. 그래서 같은 방의 동시 결제는 대기가 아니라 5초에서 일제히 실패했습니다. 그래프를 보면 타임아웃이 5초에 일렬로 멈춘 절벽이 보입니다.",
+  "해법은 락 구간에서 외부 호출을 빼내는 거였습니다. capture를 세 단계로 쪼개서, 짧게 잠가 재검증하고 CAPTURING으로 표시한 뒤 커밋해 락을 풀고, 그다음에 PayPal을 부르고, 마지막에 다시 짧게 확정합니다. 이중예약을 막는 건 방 락이 아니라 PENDING 홀드라서 락을 풀어도 안전합니다. 결과는 동시 폭주에서 결제 성공이 5분의 1에서 5분의 5로, 락 타임아웃은 4건에서 0건, 신규 예약이 물던 4초짜리 락세금도 한 자릿수 밀리초로 사라졌습니다.",
+  "해법을 적용한 뒤 같은 부하 테스트를 다시 돌렸습니다. 왼쪽이 개선 전, 5초에 멈춘 빨간 절벽이고요. 오른쪽이 개선 후입니다. 락 타임아웃이 전부 사라지고 모든 결제가 3초 안에 끝납니다. 같은 코드, 같은 부하, 락 구간만 바꿨을 뿐입니다.",
+  "두 곳에서 보통 Redis를 꺼냅니다. 결제 분산락과 실시간 알림 pub-sub인데, 저흰 둘 다 이미 가진 도구로 풀었습니다. 결제는 락을 밀리초로 줄였으니 분산락이 필요 없고, 오히려 TTL 락은 캡처 도중 만료되면 이중과금 위험을 만듭니다. 알림은 예약 서비스가 알림을 직접 부르지 않고 '확정됐다'는 이벤트만 발행하면 알림 모듈이 구독합니다. 그것도 트랜잭션 커밋 다음에, 별도 비동기 스레드에서요. 커밋 후라 롤백됐는데 알림만 나가는 사고가 막히고, 비동기라 예약 응답이 안 느려지고, 큐가 차면 호출 스레드가 직접 처리하는 백프레셔로 유실을 막았습니다. 채널은 단방향이라 SSE로 충분했고, 30초 ping으로 죽은 연결을 정리해 메모리 누수를 막았습니다.",
+  "[전환] 마지막으로, 이 모든 걸 떠받친 운영 인프라를 빠르게 보겠습니다.",
+  "운영도 코드로 했습니다. 인프라 전체가 Terraform이고, 배포는 GitHub Actions에 OIDC를 써서 키 없이 ECR로 올립니다. 스키마는 Flyway로 버전 관리하고요. 병목은 추측이 아니라 Prometheus와 Grafana로 측정했고, k6로 실제 검색 패턴을 재현했습니다. 운영 중엔 1GB짜리 DB 박스가 OOM으로 죽는 장애도 겪어서, 원인을 진단하고 인스턴스를 키워 해결했습니다.",
+  "정리하면, 두 병목 모두 측정으로 찾았고 두 해법 모두 새 도구를 더한 게 아니라 트레이드오프를 이해한 결정이었습니다. 검색은 전역 힌트를 되돌리고 적응형으로, 결제와 알림은 Redis를 일부러 도입하지 않는 쪽으로요. 다음은 적응형 검색 경로와 캐싱입니다. 감사합니다, 질문 받겠습니다."
+];
+
+/* ===========================================
+   SLIDE CONTROLLER with click-stepped FRAGMENTS
+   =========================================== */
+class SlidePresentation{
+  constructor(){
+    this.slides=[...document.querySelectorAll('.slide')];
+    this.i=0; this.f=0;
+    this.stage=document.getElementById('deckStage');
+    this.progress=document.getElementById('progress');
+    this.notes=document.getElementById('notes');
+    this.noteText=document.getElementById('noteText');
+    this.scale(); addEventListener('resize',()=>this.scale());
+    this.keys(); this.touch(); this.wheel();
+    this.show(0,false);
+  }
+  scale(){ const f=Math.min(innerWidth/1920,innerHeight/1080); const x=(innerWidth-1920*f)/2, y=(innerHeight-1080*f)/2; this.stage.style.transform=`translate(${x}px, ${y}px) scale(${f})`; }
+  frags(){ return [...this.slides[this.i].querySelectorAll('.frag')]; }
+  show(n, revealAll){
+    this.i=Math.max(0,Math.min(n,this.slides.length-1));
+    this.slides.forEach((s,k)=>{ s.classList.toggle('active',k===this.i); s.classList.toggle('visible',k===this.i); });
+    const fr=this.frags();
+    if(revealAll){ fr.forEach(e=>e.classList.add('shown')); this.f=fr.length; }
+    else { fr.forEach(e=>e.classList.remove('shown')); this.f=0; }
+    this.progress.style.width=(this.i/(this.slides.length-1)*100)+'%';
+    this.noteText.textContent=NOTES[this.i]||'';
+  }
+  next(){
+    const fr=this.frags();
+    if(this.f < fr.length){ fr[this.f].classList.add('shown'); this.f++; }
+    else if(this.i < this.slides.length-1){ this.show(this.i+1,false); }
+  }
+  prev(){
+    if(this.f > 0){ this.f--; this.frags()[this.f].classList.remove('shown'); }
+    else if(this.i > 0){ this.show(this.i-1,true); }
+  }
+  toggleNotes(){ this.notes.classList.toggle('open'); }
+  keys(){
+    addEventListener('keydown',e=>{
+      if(e.target.getAttribute && e.target.getAttribute('contenteditable')) return;
+      if(['ArrowRight','PageDown',' '].includes(e.key)){ e.preventDefault(); this.next(); }
+      else if(['ArrowLeft','PageUp'].includes(e.key)){ e.preventDefault(); this.prev(); }
+      else if(e.key==='ArrowDown'){ e.preventDefault(); this.show(this.i+1,false); }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); this.show(this.i-1,false); }
+      else if(e.key==='Home'){ this.show(0,false); } else if(e.key==='End'){ this.show(this.slides.length-1,true); }
+      else if(e.key==='n'||e.key==='N'){ this.toggleNotes(); }
+      else if(e.key==='f'||e.key==='F'){ if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+    });
+  }
+  touch(){ let x0=null; addEventListener('touchstart',e=>{ x0=e.touches[0].clientX; },{passive:true}); addEventListener('touchend',e=>{ if(x0===null)return; const dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>60){ dx<0?this.next():this.prev(); } x0=null; },{passive:true}); }
+  wheel(){ let lock=false; addEventListener('wheel',e=>{ if(lock)return; if(Math.abs(e.deltaY)<24)return; lock=true; e.deltaY>0?this.next():this.prev(); setTimeout(()=>lock=false,500); },{passive:true}); }
+}
+const deck=new SlidePresentation();
+
+/* hint auto-fade */
+const hintEl=document.getElementById('hint');
+let hintT=setTimeout(()=>hintEl.classList.add('hide'),5000);
+addEventListener('mousemove',()=>{ hintEl.classList.remove('hide'); clearTimeout(hintT); hintT=setTimeout(()=>hintEl.classList.add('hide'),3000); });
+
+/* ===========================================
+   INLINE EDITING (E, or hover top-left; Ctrl/Cmd+S downloads)
+   =========================================== */
+const editor={
+  isActive:false,
+  els:[...document.querySelectorAll('h1,h2,h3,p,.tx,.chip,.dchip,.lead,.kicker,.sub,.t,.s,.k,.v,.part,.desc')],
+  toggle(){ this.isActive=!this.isActive; document.body.classList.toggle('editing',this.isActive); document.getElementById('editToggle').classList.toggle('active',this.isActive); this.els.forEach(el=>el.setAttribute('contenteditable',this.isActive)); }
+};
+const editToggle=document.getElementById('editToggle'), hotzone=document.getElementById('editHotzone'); let hideT=null;
+editToggle.addEventListener('click',()=>editor.toggle());
+hotzone.addEventListener('click',()=>editor.toggle());
+hotzone.addEventListener('mouseenter',()=>{ clearTimeout(hideT); editToggle.classList.add('show'); });
+hotzone.addEventListener('mouseleave',()=>{ hideT=setTimeout(()=>{ if(!editor.isActive) editToggle.classList.remove('show'); },400); });
+editToggle.addEventListener('mouseenter',()=>clearTimeout(hideT));
+editToggle.addEventListener('mouseleave',()=>{ hideT=setTimeout(()=>{ if(!editor.isActive) editToggle.classList.remove('show'); },400); });
+addEventListener('keydown',e=>{
+  if((e.key==='e'||e.key==='E') && !e.target.getAttribute('contenteditable')){ editor.toggle(); }
+  if((e.ctrlKey||e.metaKey) && (e.key==='s'||e.key==='S')){ e.preventDefault(); const html='<!DOCTYPE html>\n'+document.documentElement.outerHTML; const blob=new Blob([html],{type:'text/html'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='airdnd-deck-edited.html'; a.click(); }
+});
+</script>
+</body>
+</html>

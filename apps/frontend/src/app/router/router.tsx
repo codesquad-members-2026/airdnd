@@ -7,9 +7,11 @@ import { AdminRoomApprovalsPage } from '../../pages/admin/AdminRoomApprovalsPage
 import { AdminUsersPage } from '../../pages/admin/AdminUsersPage';
 import { AdminWaitlistPage } from '../../pages/admin/AdminWaitlistPage';
 import { AuthCallbackPage } from '../../pages/auth/AuthCallbackPage';
+import { CheckoutPage } from '../../pages/checkout/CheckoutPage';
 import { LoginPage } from '../../pages/auth/LoginPage';
 import { ForbiddenPage } from '../../pages/ForbiddenPage';
 import { HostRoomFormPage } from '../../pages/host/HostRoomFormPage';
+import { HostRoomReservationsPage } from '../../pages/host/HostRoomReservationsPage';
 import { HostRoomsPage } from '../../pages/host/HostRoomsPage';
 import { MyPage } from '../../pages/my/MyPage';
 import { NotFoundPage } from '../../pages/NotFoundPage';
@@ -35,6 +37,7 @@ export const router = createBrowserRouter([
       {
         element: <ProtectedRoute />,
         children: [
+          { path: '/checkout/:reservationId', element: <CheckoutPage /> },
           { path: '/reservations', element: <ReservationsPage /> },
           { path: '/reservations/:reservationId', element: <ReservationDetailPage /> },
           { path: '/wishlists', element: <WishlistsPage /> },
@@ -49,6 +52,7 @@ export const router = createBrowserRouter([
           { path: '/host/rooms', element: <HostRoomsPage /> },
           { path: '/host/rooms/new', element: <HostRoomFormPage /> },
           { path: '/host/rooms/:roomId/edit', element: <HostRoomFormPage /> },
+          { path: '/host/rooms/:roomId/reservations', element: <HostRoomReservationsPage /> },
         ],
       },
       {

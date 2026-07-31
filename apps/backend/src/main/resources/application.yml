@@ -22,6 +22,47 @@ spring:
 
 server:
   forward-headers-strategy: framework
+  tomcat:
+    # Required for Micrometer's tomcat_threads_* metrics (busy/current/max). Without
+    # this the MBeans aren't registered and only tomcat_sessions_* show up.
+    mbeanregistry:
+      enabled: true
+
+# Actuator runs on its OWN port (8081), separate from the app's 8080. CloudFront only
+# points at 8080, so /actuator/* is never reachable from the internet — Prometheus
+# scrapes 8081 over the box's private network only. Keep 8081 off the public security group.
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: ${spring.application.name:AirDND}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true   # enables server-side p95/p99 in Grafana
 
 app:
   frontend-base-url: ${APP_FRONTEND_BASE_URL:http://127.0.0.1:5173}
+
+paypal:
+  client-id: ${PAYPAL_CLIENT_ID}
+  client-secret: ${PAYPAL_CLIENT_SECRET}
+  base-url: https://api-m.sandbox.paypal.com
+  currency: USD
+  exchange-rate: 1550      # KRW → USD 변환용 (Sandbox는 상수로 충분)
+  connect-timeout: 5s      # PayPal 연결 타임아웃
+  read-timeout: 10s      # PayPal 읽기 타임아웃 (capture 시 방 락 보유 시간 상한)
+
+aws:
+  region: ${AWS_REGION:ap-northeast-2}
+  credentials:
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+  s3:
+    bucket: ${AWS_S3_BUCKET}
+    public-base-url: ${AWS_S3_PUBLIC_BASE_URL}
+    presign-expiry-seconds: ${AWS_S3_PRESIGN_EXPIRY:300}

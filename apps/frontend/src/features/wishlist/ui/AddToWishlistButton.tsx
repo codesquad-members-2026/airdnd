@@ -2,8 +2,13 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Check, Heart } from 'lucide-react';
 import { useCurrentUserQuery } from '../../auth/api/authQueries';
-import { useAddRoomToWishlistMutation, useWishlistsQuery } from '../api/wishlistQueries';
-import { ApiError } from '../../../shared/api/apiError';
+import {
+  useAddRoomToWishlistMutation,
+  useRemoveRoomFromWishlistFolderMutation,
+  useRoomWishlistIdsQuery,
+  useSavedRoomIdsQuery,
+  useWishlistsQuery,
+} from '../api/wishlistQueries';
 
 interface AddToWishlistButtonProps {
   roomId: number;
@@ -20,15 +25,16 @@ export function AddToWishlistButton({
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  const [savedWishlistIds, setSavedWishlistIds] = useState<Set<number>>(new Set());
 
-  // 팝오버가 열려 있고 로그인된 경우에만 위시리스트 목록을 불러옵니다(목록 페이지에서 카드마다 미리 호출하지 않도록).
+  // 팝오버가 열려 있고 로그인된 경우에만 폴더 목록/멤버십을 불러옵니다(카드마다 미리 호출하지 않도록).
   const wishlistsQuery = useWishlistsQuery(isOpen && Boolean(user));
-  const addMutation = useAddRoomToWishlistMutation();
+  const roomFoldersQuery = useRoomWishlistIdsQuery(roomId, isOpen && Boolean(user));
+  // 저장 여부(빨간 하트) 표시용. 같은 쿼리 키를 공유하므로 카드가 많아도 요청은 1번만 나갑니다.
+  const savedRoomIdsQuery = useSavedRoomIdsQuery(Boolean(user));
+  const isSaved = savedRoomIdsQuery.data?.includes(roomId) ?? false;
 
-  function markSaved(wishlistId: number) {
-    setSavedWishlistIds((prev) => new Set(prev).add(wishlistId));
-  }
+  const addMutation = useAddRoomToWishlistMutation();
+  const removeFolderMutation = useRemoveRoomFromWishlistFolderMutation();
 
   function handleTriggerClick(event: React.MouseEvent) {
     // 카드 전체를 감싼 <Link>로 이벤트가 전파되어 상세로 이동하는 것을 막습니다.
@@ -39,42 +45,39 @@ export function AddToWishlistButton({
       navigate('/login', { state: { from: location } });
       return;
     }
-    setSavedWishlistIds(new Set());
+    // 저장 여부와 무관하게 폴더 토글 팝오버를 엽니다(여러 폴더에 담거나 폴더별로 뺄 수 있음).
     setIsOpen((open) => !open);
   }
 
-  function handleSelect(wishlistId: number) {
-    addMutation.mutate(
-      { wishlistId, roomId },
-      {
-        onSuccess: () => markSaved(wishlistId),
-        onError: (error) => {
-          // 이미 담긴 숙소(409)는 실패가 아니라 "이미 저장됨"으로 처리합니다.
-          if (error instanceof ApiError && error.status === 409) {
-            markSaved(wishlistId);
-          }
-        },
-      },
-    );
+  // 폴더 줄 클릭: 담겨 있으면 그 폴더에서 빼고, 아니면 그 폴더에 담습니다(폴더별 토글).
+  function handleToggleFolder(wishlistId: number, inFolder: boolean) {
+    if (inFolder) {
+      removeFolderMutation.mutate({ wishlistId, roomId });
+    } else {
+      addMutation.mutate({ wishlistId, roomId });
+    }
   }
 
   const wishlists = wishlistsQuery.data;
-  const addError = addMutation.error;
-  // 409(중복)는 위에서 담김으로 처리하므로 일반 실패 메시지에서는 제외합니다.
-  const showAddError =
-    addError instanceof ApiError ? addError.status !== 409 : Boolean(addError);
+  const folderIds = roomFoldersQuery.data;
+  const isMembershipLoading = wishlistsQuery.isLoading || roomFoldersQuery.isLoading;
+  const hasError = wishlistsQuery.error || roomFoldersQuery.error;
+  const mutationError = addMutation.error || removeFolderMutation.error;
 
   return (
     <div className={`wishlist-pop ${className ?? ''}`}>
       <button
         type="button"
-        className={variant === 'text' ? 'wishlist-save-text' : 'icon-button wishlist-save-icon'}
-        aria-label="위시리스트에 저장"
+        className={`${variant === 'text' ? 'wishlist-save-text' : 'icon-button wishlist-save-icon'}${
+          isSaved ? ' is-saved' : ''
+        }`}
+        aria-label={isSaved ? '위시리스트 편집' : '위시리스트에 저장'}
+        aria-pressed={isSaved}
         aria-expanded={isOpen}
         onClick={handleTriggerClick}
       >
         <Heart size={variant === 'text' ? 16 : 18} />
-        {variant === 'text' ? <span>저장</span> : null}
+        {variant === 'text' ? <span>{isSaved ? '저장됨' : '저장'}</span> : null}
       </button>
 
       {isOpen ? (
@@ -83,34 +86,31 @@ export function AddToWishlistButton({
           <div className="wishlist-pop-panel" role="dialog" aria-label="위시리스트 선택">
             <p className="wishlist-pop-title">위시리스트에 저장</p>
 
-            {wishlistsQuery.isLoading ? (
-              <p className="wishlist-pop-status">불러오는 중…</p>
-            ) : null}
-            {wishlistsQuery.error ? (
-              <p className="wishlist-pop-status">목록을 불러오지 못했습니다.</p>
-            ) : null}
-            {showAddError ? (
-              <p className="wishlist-pop-status">저장에 실패했습니다. 다시 시도해 주세요.</p>
+            {isMembershipLoading ? <p className="wishlist-pop-status">불러오는 중…</p> : null}
+            {hasError ? <p className="wishlist-pop-status">목록을 불러오지 못했습니다.</p> : null}
+            {mutationError ? (
+              <p className="wishlist-pop-status">변경에 실패했습니다. 다시 시도해 주세요.</p>
             ) : null}
 
             {wishlists && wishlists.length === 0 ? (
               <p className="wishlist-pop-status">아직 위시리스트가 없습니다.</p>
             ) : null}
 
-            {wishlists && wishlists.length > 0 ? (
+            {wishlists && wishlists.length > 0 && folderIds ? (
               <ul className="wishlist-pop-list">
                 {wishlists.map((wishlist) => {
-                  const isSaved = savedWishlistIds.has(wishlist.id);
+                  const inFolder = folderIds.includes(wishlist.id);
                   return (
                     <li key={wishlist.id}>
                       <button
                         type="button"
-                        onClick={() => handleSelect(wishlist.id)}
-                        disabled={addMutation.isPending || isSaved}
+                        className={inFolder ? 'is-in-folder' : ''}
+                        aria-pressed={inFolder}
+                        onClick={() => handleToggleFolder(wishlist.id, inFolder)}
                       >
-                        {isSaved ? <Check size={16} /> : <Heart size={14} />}
+                        {inFolder ? <Check size={16} /> : <Heart size={14} />}
                         <span className="pop-name">{wishlist.name}</span>
-                        <small className="pop-count">{isSaved ? '담김' : wishlist.roomCount}</small>
+                        <small className="pop-count">{inFolder ? '담김' : wishlist.roomCount}</small>
                       </button>
                     </li>
                   );

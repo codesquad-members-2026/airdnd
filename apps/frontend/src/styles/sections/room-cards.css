@@ -1,0 +1,374 @@
+.room-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-8) var(--space-6);
+}
+
+/* 제목 블록(좌) + 주요 액션 버튼(우)을 한 줄에 둔 페이지 헤더.
+   위시리스트·호스트 숙소 관리 등에서 공용으로 써서 버튼 위치를 통일한다.
+   버튼은 부제 유무와 무관하게 항상 제목 상단에 정렬(flex-start)된다. */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.wishlist-create-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.wishlist-create-form input {
+  min-height: 42px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-8);
+  background: var(--color-white);
+  font-size: var(--font-size-14);
+}
+
+.wishlist-create-form input:focus {
+  outline: none;
+  border-color: var(--color-brand);
+}
+
+.wishlist-create-form .full-row {
+  flex-basis: 100%;
+}
+
+/* 위시리스트 페이지 헤더 부제 — reservation-intro 와 같은 톤으로 통일 */
+.wishlist-lead {
+  margin-bottom: 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-16);
+}
+
+.wishlist-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6) var(--space-5);
+}
+
+.wishlist-folder-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-16);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.wishlist-folder-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 폴더 표지 — 첫 숙소 사진을 채운다. 사진이 없을 땐 차분한 뉴트럴 그라데이션 + 은은한 광택 */
+.wishlist-folder-cover {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ededf0, #f7f7f8 55%, #e7e7ea);
+}
+
+.wishlist-folder-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 260ms ease;
+}
+
+.wishlist-folder-card:hover .wishlist-folder-cover img {
+  transform: scale(1.04);
+}
+
+/* 광택은 사진이 없는 플레이스홀더에서만 — 사진 위에 흰 빛이 겹치지 않도록 */
+.wishlist-folder-cover:not(:has(img))::after {
+  content: "";
+  position: absolute;
+  top: -64px;
+  right: -48px;
+  width: 188px;
+  height: 188px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0));
+}
+
+/* 좌상단 코너 하트 악센트 — 평소엔 먹색으로 절제, 호버 때만 브랜드색 */
+.wishlist-folder-icon {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(4px);
+  box-shadow: var(--shadow-sm);
+  transition:
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.wishlist-folder-card:hover .wishlist-folder-icon {
+  color: var(--color-brand);
+  transform: scale(1.06);
+}
+
+.wishlist-folder-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+}
+
+.wishlist-folder-body h2 {
+  overflow: hidden;
+  margin-bottom: 0;
+  font-size: var(--font-size-16);
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wishlist-folder-count {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  font-size: var(--font-size-12);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: 700;
+}
+
+.back-link:hover {
+  color: var(--text-primary);
+}
+
+.room-card {
+  position: relative;
+  border-radius: var(--radius-16);
+  background: var(--color-white);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.room-card:hover {
+  transform: translateY(-3px);
+}
+
+.room-card a {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.room-card-media {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-16);
+  background: var(--surface-subtle);
+}
+
+.room-card img {
+  width: 100%;
+  aspect-ratio: 1 / 0.92;
+  object-fit: cover;
+  transition: transform 240ms ease;
+}
+
+.room-card:hover img {
+  transform: scale(1.035);
+}
+
+.favorite-control {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.room-card-body {
+  display: grid;
+  gap: var(--space-1);
+  padding: 0 2px;
+}
+
+.room-card-title-row {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.room-card-info {
+  display: grid;
+  gap: 2px;
+}
+
+.room-card-location {
+  margin-bottom: 0;
+}
+
+.room-card h2,
+.reservation-content h2 {
+  margin-bottom: 0;
+  font-size: var(--font-size-16);
+  line-height: 1.25;
+}
+
+/* 猷몄뭅???대쫫: 臾듭쭅??蹂쇰뱶 ???誘몃뵒??臾닿쾶濡?媛蹂띻쾶 */
+.room-card-title-row h2 {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.card-meta {
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+}
+
+.room-price {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-bottom: 0;
+  font-size: var(--font-size-15, var(--font-size-14));
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.room-price strong {
+  font-weight: 500;
+}
+
+.room-price span {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+/* ?됱젏 쨌 ?꾧린 */
+.rating-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-primary);
+  font-size: var(--font-size-14);
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.rating-inline svg {
+  color: var(--color-brand);
+}
+
+.rating-inline .review-count {
+  margin-left: 2px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.rating-inline.rating-empty {
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.rating-skeleton {
+  display: inline-block;
+  width: 26px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
+}
+
+.review-section {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6) var(--space-8);
+}
+
+.review-item {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.review-author {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.review-author .avatar-fallback {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--text-tertiary);
+  background: var(--surface-subtle);
+}
+
+.review-author-name {
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.review-date {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.review-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.review-stars .is-on {
+  color: var(--color-brand);
+}
+
+.review-stars .is-off {
+  color: var(--border-strong);
+}
+
+.review-comment {
+  margin-bottom: 0;
+  color: var(--text-secondary);
+  line-height: var(--line-normal);
+}
+

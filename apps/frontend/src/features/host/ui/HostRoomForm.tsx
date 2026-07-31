@@ -1,69 +1,138 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { SelectedLocation } from '../../maps/model/locationTypes';
+import { LocationPicker } from '../../maps/ui/LocationPicker';
+import { RoomLocationMap } from '../../maps/ui/RoomLocationMap';
+import { RoomDetail } from '../../rooms/model/roomTypes';
+import { AMENITY_OPTIONS } from '../../rooms/model/amenities';
 import {
-  HostRoom,
   HostRoomFormInput,
-  HostRoomFormValues,
-  hostRoomFormSchema,
+  HostRoomUpdateFormInput,
+  HostRoomUpdateFormValues,
+  hostRoomUpdateFormSchema,
 } from '../model/hostRoomTypes';
+import { RoomImageUploader } from './RoomImageUploader';
 
-type HostRoomFormProps = {
-  initialValue?: HostRoom;
-  isSubmitting?: boolean;
-  onSubmit: (input: HostRoomFormInput) => void;
+type HostRoomFormProps =
+  | {
+      mode: 'create';
+      initialValue?: never;
+      isSubmitting?: boolean;
+      onSubmit: (input: HostRoomFormInput) => void;
+    }
+  | {
+      mode: 'edit';
+      initialValue: RoomDetail;
+      isSubmitting?: boolean;
+      onSubmit: (input: HostRoomUpdateFormInput) => void;
+    };
+
+const defaultValues: HostRoomUpdateFormValues = {
+  name: '',
+  description: '',
+  pricePerNight: 100000,
+  maxGuests: 2,
+  imageUrls: [],
+  allowsInfants: false,
+  allowsPets: false,
+  amenities: [],
 };
 
-export function HostRoomForm({ initialValue, isSubmitting = false, onSubmit }: HostRoomFormProps) {
+export function HostRoomForm(props: HostRoomFormProps) {
+  const { mode, isSubmitting = false } = props;
+  const initialValue = props.mode === 'edit' ? props.initialValue : undefined;
+  const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   const {
     register,
     reset,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
-  } = useForm<HostRoomFormValues, unknown, HostRoomFormInput>({
-    resolver: zodResolver(hostRoomFormSchema),
-    defaultValues: {
-      name: '',
-      region: '',
-      address: '',
-      description: '',
-      pricePerNight: 100000,
-      maxGuests: 2,
-      imageUrl: '',
-      imageUrlsText: '',
-      allowsInfants: false,
-      allowsPets: false,
-      amenitiesText: '',
-    },
+  } = useForm<HostRoomUpdateFormValues, unknown, HostRoomUpdateFormInput>({
+    resolver: zodResolver(hostRoomUpdateFormSchema),
+    defaultValues,
   });
+
+  const imageUrls = watch('imageUrls') ?? [];
+
+  function handleImagesChange(urls: string[]) {
+    setValue('imageUrls', urls, { shouldValidate: true, shouldDirty: true });
+  }
 
   useEffect(() => {
     if (initialValue) {
       reset({
-        ...initialValue,
-        imageUrlsText: initialValue.imageUrls?.join(', ') || '',
-        amenitiesText: initialValue.amenities.join(', '),
+        name: initialValue.name,
+        description: initialValue.description,
+        pricePerNight: initialValue.pricePerNight,
+        maxGuests: initialValue.maxGuests,
+        // 대표 이미지를 맨 앞에 두고 나머지를 이어붙인다(중복 제거).
+        imageUrls: [
+          initialValue.imageUrl,
+          ...(initialValue.imageUrls ?? []).filter((url) => url && url !== initialValue.imageUrl),
+        ].filter(Boolean),
+        amenities: initialValue.amenities ?? [],
+        allowsInfants: initialValue.allowsInfants,
+        allowsPets: initialValue.allowsPets,
       });
     }
   }, [initialValue, reset]);
 
+  function submitForm(input: HostRoomUpdateFormInput) {
+    if (props.mode === 'edit') {
+      props.onSubmit(input);
+      return;
+    }
+
+    if (!selectedLocation) {
+      return;
+    }
+
+    props.onSubmit({
+      ...input,
+      ...selectedLocation,
+    });
+  }
+
   return (
-    <form className="form-grid" onSubmit={handleSubmit(onSubmit)}>
+    <form className="form-grid" onSubmit={handleSubmit(submitForm)}>
       <label>
         숙소 이름
         <input {...register('name')} />
         {errors.name ? <span className="field-error">{errors.name.message}</span> : null}
       </label>
-      <label>
-        지역
-        <input {...register('region')} />
-        {errors.region ? <span className="field-error">{errors.region.message}</span> : null}
-      </label>
-      <label className="full-row">
-        주소
-        <input {...register('address')} />
-        {errors.address ? <span className="field-error">{errors.address.message}</span> : null}
-      </label>
+      <div className="host-location-field full-row">
+        <div>
+          <strong>숙소 위치</strong>
+          <p className="muted">
+            {mode === 'create'
+              ? '주소 검색 결과를 선택하면 지역과 위치가 자동으로 설정됩니다.'
+              : '숙소 위치는 등록 후 변경할 수 없습니다.'}
+          </p>
+        </div>
+        {mode === 'create' ? (
+          <LocationPicker
+            value={selectedLocation}
+            onChange={setSelectedLocation}
+            disabled={isSubmitting}
+          />
+        ) : (
+          <div className="host-location-readonly">
+            <div className="location-picker-details">
+              <strong>{props.initialValue.address}</strong>
+              <span>{props.initialValue.region}</span>
+              <small>위치가 변경되었다면 기존 숙소를 수정하지 말고 새 숙소로 등록해주세요.</small>
+            </div>
+            <RoomLocationMap
+              latitude={props.initialValue.latitude}
+              longitude={props.initialValue.longitude}
+              name={props.initialValue.name}
+            />
+          </div>
+        )}
+      </div>
       <label>
         1박 가격
         <input type="number" min={1} {...register('pricePerNight')} />
@@ -76,19 +145,34 @@ export function HostRoomForm({ initialValue, isSubmitting = false, onSubmit }: H
         <input type="number" min={1} {...register('maxGuests')} />
         {errors.maxGuests ? <span className="field-error">{errors.maxGuests.message}</span> : null}
       </label>
-      <label className="full-row">
-        대표 이미지 URL
-        <input {...register('imageUrl')} />
-        {errors.imageUrl ? <span className="field-error">{errors.imageUrl.message}</span> : null}
-      </label>
-      <label className="full-row">
-        추가 이미지 URL 목록 (쉼표로 구분)
-        <textarea rows={3} placeholder="https://..., https://..." {...register('imageUrlsText')} />
-      </label>
-      <label className="full-row">
-        편의시설
-        <input placeholder="와이파이, 주차, 주방" {...register('amenitiesText')} />
-      </label>
+      <div className="full-row">
+        <strong>숙소 이미지</strong>
+        <RoomImageUploader
+          value={imageUrls}
+          onChange={handleImagesChange}
+          disabled={isSubmitting}
+        />
+        {errors.imageUrls ? (
+          <span className="field-error">
+            {errors.imageUrls.message ?? errors.imageUrls.root?.message}
+          </span>
+        ) : null}
+      </div>
+      <fieldset className="amenities-fieldset full-row">
+        <legend>편의시설</legend>
+        <div className="amenities-check-grid">
+          {AMENITY_OPTIONS.map((option) => {
+            const Icon = option.icon;
+            return (
+              <label key={option.value} className="amenity-check">
+                <input type="checkbox" value={option.value} {...register('amenities')} />
+                <Icon size={18} strokeWidth={1.8} aria-hidden />
+                <span>{option.value}</span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
       <label className="checkbox-row full-row">
         <input type="checkbox" {...register('allowsInfants')} />
         <span>
@@ -110,7 +194,11 @@ export function HostRoomForm({ initialValue, isSubmitting = false, onSubmit }: H
           <span className="field-error">{errors.description.message}</span>
         ) : null}
       </label>
-      <button className="primary-button full-row" type="submit" disabled={isSubmitting}>
+      <button
+        className="primary-button full-row"
+        type="submit"
+        disabled={isSubmitting || (mode === 'create' && !selectedLocation)}
+      >
         {isSubmitting ? '저장 중...' : '숙소 저장'}
       </button>
     </form>

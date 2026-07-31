@@ -15,14 +15,17 @@ export function RoomCard({ room }: { room: RoomSummary }) {
         <div className="room-card-body">
           <div className="room-card-title-row">
             <h2>{room.name}</h2>
-            {/* 개별적으로 리뷰 요약 API를 호출하여 별점 표시 */}
-            <RoomReviewBadge roomId={room.id} showReviewCount={false} />
+            {/* 백엔드가 집계해 내려준 평점을 표시 */}
+            <RoomReviewBadge rating={room.rating} reviewCount={room.reviewCount} showReviewCount={false} />
           </div>
-          <p className="muted">{room.region} · 최대 {room.maxGuests}명</p>
-          <p className="room-price">
-            {formatCurrency(room.pricePerNight)}
-            <span> / 박</span>
-          </p>
+          <div className="room-card-info">
+            <p className="room-card-location muted">
+              {room.region} · 최대 {room.maxGuests}명
+            </p>
+            <p className="room-price">
+              <strong>{formatCurrency(room.pricePerNight)}</strong>
+            </p>
+          </div>
         </div>
       </Link>
     </article>

@@ -1,8 +1,6 @@
 package com.airdnd.room.dto;
 
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -25,6 +23,7 @@ public class HostRoomRequest {
 
     @NotNull(message = "가격은 필수입니다.")
     @Min(value = 1, message = "1박당 가격은 최소 1원 이상이어야 합니다.")
+    @Max(value = 50000000, message = "1박당 최대 가격은 50000000원 입니다")
     private Integer pricePerNight;
 
     @NotNull(message = "최대 인원은 필수입니다.")
@@ -45,11 +44,16 @@ public class HostRoomRequest {
     private Boolean allowsPets;
 
     @NotBlank(message = "국가 코드는 필수입니다.")
+    @Pattern(regexp = "^[A-Z]{2}$", message = "국가 코드는 대문자 ISO 2자리 코드여야 합니다.")
     private String countryCode;
 
     @NotNull(message = "위도는 필수입니다.")
+    @DecimalMin(value = "-90.0", message = "위도는 -90 이상이어야 합니다.")
+    @DecimalMax(value = "90.0", message = "위도는 90 이하여야 합니다.")
     private BigDecimal latitude;
 
     @NotNull(message = "경도는 필수입니다.")
+    @DecimalMin(value = "-180.0", message = "경도는 -180 이상이어야 합니다.")
+    @DecimalMax(value = "180.0", message = "경도는 180 이하여야 합니다.")
     private BigDecimal longitude;
 }

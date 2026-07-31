@@ -16,14 +16,17 @@ public record RoomDetailResponse(
         String imageUrl,
         boolean isAvailable,
         boolean allowsPets,
+        boolean allowsInfants,
         String description,
         List<String> amenities,
         List<String> imageUrls,
         String hostName,
         BigDecimal latitude,
-        BigDecimal longitude
+        BigDecimal longitude,
+        Double averageRating,
+        Long reviewCount
 ) {
-    public static RoomDetailResponse from(Room room) {
+    public static RoomDetailResponse from(Room room, RoomRatingDto rating) {
         List<String> imageUrls = room.getImages().stream()
                 .map(RoomImage::getImageUrl)
                 .toList();
@@ -38,12 +41,15 @@ public record RoomDetailResponse(
                 room.getRepresentativeImageUrl(),
                 room.getIsActive(),
                 room.getAllowsPets(),
+                room.getAllowsInfants(),
                 room.getDescription() == null ? "" : room.getDescription(),
                 List.copyOf(room.getAmenities()),
                 imageUrls,
-                "테스트 호스트", // 임시 더미 데이터 (hostName)
+                room.getHostName(),
                 room.getLatitude(),
-                room.getLongitude()
+                room.getLongitude(),
+                rating == null ? null : rating.averageRating(),
+                rating == null ? 0L : rating.reviewCount()
         );
     }
 }

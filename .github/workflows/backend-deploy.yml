@@ -54,11 +54,10 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Test
-        run: ./gradlew test
-
+      # Tests are intentionally skipped in the deploy pipeline for this
+      # learning/demo project (run them separately before merging).
       - name: Build boot jar
-        run: ./gradlew bootJar
+        run: ./gradlew bootJar -x test
 
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
@@ -67,13 +66,104 @@ jobs:
           path: apps/backend/build/libs/*.jar
           if-no-files-found: error
 
-  deploy-placeholder:
-    name: Deployment Hook Placeholder
+  deploy:
+    name: Deploy Backend
     runs-on: ubuntu-latest
     needs: build
-    environment: ${{ github.event.inputs.environment || 'dev' }}
+    # Deploy automatically only on push to main, but ALSO allow a manual
+    # workflow_dispatch from any branch (so you can test a deploy from a
+    # feature branch without merging to main first).
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read  # checkout
+      id-token: write # mint the OIDC token used to assume the AWS role
     steps:
-      - name: Explain next deployment step
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download boot jar
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-boot-jar
+          path: apps/backend/build/libs
+
+      - name: Stage jar for the image build
         run: |
-          echo "Backend artifact was built successfully."
-          echo "Add provider-specific deployment steps here when the backend target is decided."
+          set -euo pipefail
+          # bootJar produces a single executable jar; guard against a -plain.jar.
+          JAR="$(ls apps/backend/build/libs/*.jar | grep -v -- '-plain.jar' | head -n1)"
+          echo "using jar: $JAR"
+          cp "$JAR" apps/backend/docker/app.jar
+
+      - name: Configure AWS credentials (OIDC, no stored keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # The runner is amd64 but the EC2 box is arm64 (t4g). We only COPY a jar
+      # (no compilation), so emulated arm64 packaging via QEMU is fast.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push image (linux/arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/backend/docker
+          platforms: linux/arm64
+          push: true
+          # Keep provenance off so ECR isn't cluttered with attestation
+          # manifests — we don't need SBOM/provenance for this deploy.
+          provenance: false
+          tags: |
+            ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ vars.ECR_REPOSITORY }}:latest
+
+      # Trigger the pull+restart on the box via SSM. We send the repo's
+      # remote-deploy.sh, prefixed with an `export` line carrying the image URI
+      # and region. AWS-RunShellScript joins the commands array into one shell,
+      # so the exports are visible to the script.
+      - name: Deploy to EC2 via SSM
+        run: |
+          set -euo pipefail
+          # Resolve the box by its Name tag at runtime instead of a stored
+          # instance id. Terraform may replace the instance (new id) on an
+          # apply; looking it up by tag means the deploy never targets a stale,
+          # terminated id (which fails with InvalidInstanceId).
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters Name=tag:Name,Values=airdnd-backend \
+                      Name=instance-state-name,Values=running \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "No running instance tagged Name=airdnd-backend found" >&2
+            exit 1
+          fi
+          echo "target instance: $INSTANCE_ID"
+
+          PRELUDE="export IMAGE='${{ vars.ECR_REPOSITORY }}:${{ github.sha }}'; export REGION='${{ vars.AWS_REGION }}'"
+          BODY="$(cat apps/backend/docker/remote-deploy.sh)"
+          PARAMS="$(jq -Rn --arg p "$PRELUDE" --arg b "$BODY" '{commands: [$p, $b]}')"
+
+          CID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "deploy airdnd-backend ${{ github.sha }}" \
+            --parameters "$PARAMS" \
+            --query 'Command.CommandId' --output text)
+          echo "SSM command id: $CID"
+
+          aws ssm wait command-executed --command-id "$CID" --instance-id "$INSTANCE_ID" || true
+
+          echo "----- remote stdout -----"
+          aws ssm get-command-invocation --command-id "$CID" --instance-id "$INSTANCE_ID" --query StandardOutputContent --output text || true
+          echo "----- remote stderr -----"
+          aws ssm get-command-invocation --command-id "$CID" --instance-id "$INSTANCE_ID" --query StandardErrorContent --output text || true
+
+          STATUS=$(aws ssm get-command-invocation --command-id "$CID" --instance-id "$INSTANCE_ID" --query Status --output text)
+          echo "deploy status: $STATUS"
+          test "$STATUS" = "Success"

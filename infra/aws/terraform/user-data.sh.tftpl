@@ -1,0 +1,15 @@
+#!/bin/bash
+# user-data.sh.tftpl — first-boot bootstrap (cloud-init), rendered by Terraform.
+#
+# Kept deliberately THIN: install Docker + enable the SSM agent, nothing more.
+# The container itself is started LATER by the deploy workflow via SSM Run
+# Command, which injects env from Parameter Store. This is exactly the kind of
+# light "config management" user-data is good at — a couple of packages and
+# services, no application config. (user-data runs ONLY on first boot.)
+set -euxo pipefail
+
+dnf update -y
+dnf install -y docker
+systemctl enable --now docker
+systemctl enable --now amazon-ssm-agent
+usermod -aG docker ec2-user

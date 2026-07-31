@@ -1,0 +1,2 @@
+# Built by CI right before `docker build`; never committed.
+app.jar

@@ -10,10 +10,13 @@ export function WishlistsPage() {
 
   return (
     <section className="stack">
-      <div className="wishlist-page-head">
+      <div className="page-head">
         <div className="page-heading">
           <p className="eyebrow">Wishlists</p>
           <h1>위시리스트</h1>
+          <p className="wishlist-lead">
+            마음에 들었던 숙소를 폴더로 모아두고 언제든 다시 꺼내 보세요.
+          </p>
         </div>
         <CreateWishlistButton />
       </div>

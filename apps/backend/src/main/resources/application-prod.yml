@@ -1,5 +1,19 @@
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            # CloudFront terminates TLS and forwards to the box over plain HTTP,
+            # so the request scheme Spring sees is http. Force https here (host
+            # stays dynamic via the forwarded Host header) so the redirect_uri
+            # sent to Google matches the registered https callback. Without this:
+            # Error 400 redirect_uri_mismatch (Google emits http://…, which it
+            # also won't let you register for a non-localhost domain).
+            redirect-uri: "https://{baseHost}{basePort}/login/oauth2/code/{registrationId}"
   datasource:
+    hikari:
+      connection-init-sql: "SET innodb_lock_wait_timeout = 5"
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}

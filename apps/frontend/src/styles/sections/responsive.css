@@ -1,0 +1,182 @@
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes modal-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes map-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  80%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.map-ping {
+  animation: map-ping 2.4s ease-out infinite;
+}
+
+@media (max-width: 980px) {
+  .site-header {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+    padding: var(--space-4) 24px;
+  }
+
+  .site-nav {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .page-container {
+    width: min(100% - 32px, var(--container));
+  }
+
+  .home-hero {
+    padding: var(--space-6);
+  }
+
+  .search-bar,
+  .detail-layout,
+  .form-grid,
+  .metric-grid,
+  .map-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .search-bar {
+    border-radius: var(--radius-20);
+  }
+
+  .search-field {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .search-popover {
+    position: static;
+    width: 100%;
+    margin-top: var(--space-3);
+    box-shadow: none;
+  }
+
+  .room-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .host-room-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wishlist-folder-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detail-gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-gallery-side {
+    display: none;
+  }
+
+  .detail-hero {
+    min-height: 320px;
+  }
+
+  .reservation-panel {
+    position: static;
+  }
+
+  .map-panel {
+    position: relative;
+    min-height: 420px;
+    top: auto;
+  }
+
+  .results-map {
+    position: relative;
+    top: auto;
+    height: 520px;
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 640px) {
+  .room-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .host-metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wishlist-folder-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .amenity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .list-stack {
+    grid-template-columns: 1fr;
+  }
+
+  .map-result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* 게스트 예약 목록 카드 그리드는 한 열로 */
+  .res-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* admin 예약/숙소 승인 카드는 모바일에서 세로로 쌓는다 */
+  .reservation-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+

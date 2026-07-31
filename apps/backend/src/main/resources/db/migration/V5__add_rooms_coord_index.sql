@@ -1,0 +1,1 @@
+CREATE INDEX idx_rooms_lat_long_price ON rooms(latitude, longitude, price_per_night);

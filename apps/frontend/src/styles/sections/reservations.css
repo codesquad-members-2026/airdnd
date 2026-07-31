@@ -1,0 +1,788 @@
+/* 예약 화면의 카드 묶음을 한 칸짜리 세로 흐름으로 쌓아 올리는 공통 컬럼.
+   list-stack 은 admin 예약/숙소 승인 목록에서도 그대로 사용한다. */
+.list-stack {
+  display: grid;
+  gap: var(--space-5);
+}
+
+/* 페이지 헤더 부제 */
+.reservation-intro {
+  margin-top: var(--space-2);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-16);
+}
+
+/* ───────── 게스트 예약 목록: 세그먼트 필터 + 카드 그리드 (Airbnb 풍으로 다듬음) ───────── */
+.reservation-board {
+  display: grid;
+  gap: var(--space-6);
+}
+
+/* 알약형 세그먼트 컨트롤 — 다가오는 / 지난 / 취소를 한 줄로 전환 */
+.segmented {
+  display: inline-flex;
+  gap: 4px;
+  width: fit-content;
+  padding: 5px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.seg-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.seg-tab:hover {
+  color: var(--text-primary);
+}
+
+/* 선택된 탭은 어두운 알약으로 또렷하게 반전 */
+.seg-tab.active {
+  background: var(--text-primary);
+  color: var(--color-white);
+}
+
+.seg-tab__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-pill);
+  background: var(--color-gray-100);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-12);
+  font-weight: 800;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.seg-tab.active .seg-tab__count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+/* 게스트 예약 카드 — 호스트 숙소 목록 카드(.host-room-card)와 동일한 레이아웃·버튼으로 통일.
+   미디어(좌측, 카드 높이만큼 세로 채움) + 본문(우 상단) + 액션 행(우 하단)의 2열 2행 그리드. */
+.res-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.res-card {
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-2) var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-16);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.res-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 썸네일 — 좌측 열에서 본문+액션 높이만큼 세로로 채운다 (host-room-media 와 동일) */
+.res-card__media {
+  position: relative;
+  grid-row: 1 / 3;
+  align-self: stretch;
+  overflow: hidden;
+  border-radius: var(--radius-12);
+}
+
+.res-card__media img {
+  width: 124px;
+  height: 100%;
+  min-height: 132px;
+  object-fit: cover;
+}
+
+.res-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* 제목 + 상태 배지를 한 줄에 — 배지를 카드 오른쪽 위로 둔다 */
+.res-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.res-card__top a {
+  min-width: 0; /* 제목 말줄임이 동작하도록 링크가 줄어들 수 있게 */
+}
+
+/* 상태 배지 — 호스트 카드(host-status)와 같은 솔리드 펠릿 색을 쓰되,
+   사진 오버레이가 아니라 제목 행 오른쪽 끝에 흐름 요소로 둔다(항상 보임). */
+.res-card__badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--color-white);
+  font-size: var(--font-size-12);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.res-card__badge.is-active {
+  background: rgba(17, 137, 23, 0.94);
+}
+
+.res-card__badge.is-pending {
+  background: rgba(183, 121, 31, 0.94);
+}
+
+.res-card__badge.is-inactive {
+  background: rgba(24, 24, 27, 0.8);
+}
+
+/* 숙소명 — 한 줄로 보여주고 넘치면 말줄임 (호스트 카드 h2 와 동일 크기) */
+.res-card__title {
+  overflow: hidden;
+  margin-bottom: 0;
+  font-size: var(--font-size-18);
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color 160ms ease;
+}
+
+.res-card a:hover .res-card__title {
+  color: var(--color-brand);
+}
+
+.res-card__loc {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+}
+
+.res-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin-top: 2px;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-13);
+  font-weight: 650;
+}
+
+.res-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-16);
+  font-weight: 800;
+}
+
+.res-card__price span {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-12);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 액션 행 — 카드 우측 하단. 호스트 카드와 동일한 secondary-button 사용 */
+.res-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  grid-column: 2;
+  align-self: end;
+}
+
+.res-card__actions .secondary-button {
+  gap: var(--space-1);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  font-size: var(--font-size-14);
+}
+
+/* 취소된 예약은 흐리게 + 가격에 취소선 */
+.res-card.is-cancelled {
+  opacity: 0.62;
+}
+
+.res-card.is-cancelled .res-card__price {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+/* 상태 배지 (확정/대기/취소) */
+.status {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-12);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+
+.status--success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.status--warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.status--neutral {
+  background: var(--surface-subtle);
+  color: var(--text-tertiary);
+}
+
+/* 카드 액션 버튼 (예약 취소 / 리뷰 작성) — 알약형 고스트 버튼 */
+.ghost-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--text-primary);
+  font-size: var(--font-size-13);
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.ghost-button:hover {
+  border-color: var(--text-tertiary);
+  box-shadow: var(--shadow-sm);
+}
+
+.ghost-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* 리뷰 작성 완료 표시 (버튼 자리를 대신함) */
+.reservation-review-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-success);
+  font-size: var(--font-size-13);
+  font-weight: 800;
+}
+
+/* ───────── admin 예약/숙소 승인 목록 공용 카드 (.reservation-item / .reservation-content) ─────────
+   display:flex 는 components.css 에서 .reservation-item 에 함께 적용된다. */
+.reservation-item {
+  min-height: 168px;
+  align-items: stretch;
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-16);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+}
+
+.reservation-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.reservation-item img {
+  width: 132px;
+  aspect-ratio: 4 / 3;
+  align-self: center;
+  border-radius: var(--radius-12);
+  object-fit: cover;
+}
+
+.reservation-content {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  align-content: start;
+  gap: var(--space-1);
+}
+
+.reservation-content h2 {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 취소 진행 중 버튼 안에 들어가는 작은 스피너 */
+.button-spinner {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  border: 2px solid var(--color-gray-200);
+  border-top-color: var(--text-secondary);
+  border-radius: 999px;
+  animation: spin 700ms linear infinite;
+}
+
+/* 취소 완료 모달 */
+.cancel-success {
+  text-align: center;
+}
+
+.cancel-success__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-success);
+  color: var(--color-white);
+}
+
+.cancel-success__title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-20);
+  font-weight: 850;
+}
+
+.cancel-success__desc {
+  margin: 0 0 var(--space-5);
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+}
+
+/* 취소 확인 모달 */
+.cancel-confirm__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-20);
+  font-weight: 850;
+}
+
+.cancel-confirm__desc {
+  margin: 0 0 var(--space-3);
+  line-height: 1.5;
+}
+
+.cancel-confirm__note {
+  margin: 0 0 var(--space-5);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+}
+
+.cancel-confirm__actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.cancel-confirm__actions > * {
+  flex: 1;
+}
+
+/* 위험 동작(취소 확정)용 버튼 */
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius-8);
+  color: var(--color-white);
+  background: var(--color-brand);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.danger-button:hover {
+  background: var(--color-brand-strong);
+}
+
+.danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* 빈 상태 CTA 영역 */
+.state-box__action {
+  margin-top: var(--space-2);
+}
+
+.row-between {
+  justify-content: space-between;
+}
+
+/* ── 예약 상세: 결제 완료(확정) 컨펌 화면 ───────────────────────
+   결제가 끝나면 곧장 들어오는 화면. 따뜻한 베이지 캔버스 위에 좌측 숙소 카드 +
+   우측 큰 메시지를 나란히 둔 split 레이아웃. 디자인: BookingDetail.html */
+.confirm-stage {
+  display: grid;
+  place-items: center;
+  min-height: clamp(540px, 72vh, 780px);
+  padding: clamp(40px, 6vh, 80px) clamp(20px, 5vw, 72px);
+  border-radius: var(--radius-20);
+  /* 앱 표면보다 한 톤 가라앉은, 차분한 확정 배경 */
+  background: #ebeae6;
+}
+
+.confirm-split {
+  width: min(1040px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 500px) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(40px, 6vw, 104px);
+}
+
+/* ── 좌측: 숙소 스테이 카드 ── */
+.stay-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 560px;
+  padding: 18px 18px 8px;
+  border-radius: 24px;
+  background: var(--color-white);
+  box-shadow: 0 30px 70px rgba(24, 24, 27, 0.14);
+  /* 처음에 좌 → 우로 깊게 한 번 휘둘렀다가 점점 잦아들며 안정 (Y축) */
+  transform-origin: center center;
+  animation: stay-card-rock-in 1400ms cubic-bezier(0.33, 0, 0.2, 1) both;
+}
+
+/* 깊은 우(+22°) → 깊은 좌(-16°)로 크게 넘어간 뒤 진폭이 줄며 0°로 수렴 */
+@keyframes stay-card-rock-in {
+  0% {
+    opacity: 0;
+    transform: perspective(1100px) rotateY(22deg);
+  }
+  18% {
+    opacity: 1;
+    transform: perspective(1100px) rotateY(20deg);
+  }
+  40% {
+    transform: perspective(1100px) rotateY(-16deg);
+  }
+  58% {
+    transform: perspective(1100px) rotateY(9deg);
+  }
+  73% {
+    transform: perspective(1100px) rotateY(-5deg);
+  }
+  85% {
+    transform: perspective(1100px) rotateY(2.5deg);
+  }
+  94% {
+    transform: perspective(1100px) rotateY(-1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1100px) rotateY(0deg);
+  }
+}
+
+/* 움직임을 줄이는 사용자 설정에서는 흔들림 없이 부드럽게만 */
+@media (prefers-reduced-motion: reduce) {
+  .stay-card {
+    animation: none;
+  }
+}
+
+.stay-card__media {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-16);
+  background: var(--surface-subtle);
+}
+
+.stay-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stay-pill {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 13px;
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--text-primary);
+  font-size: var(--font-size-13);
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(24, 24, 27, 0.16);
+}
+
+.stay-pill .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+.stay-pill--warning .dot {
+  background: var(--color-warning);
+}
+
+.stay-pill--neutral .dot {
+  background: var(--text-tertiary);
+}
+
+.stay-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: var(--space-5) var(--space-3) 0;
+}
+
+.stay-card__title {
+  margin: 0;
+  font-size: var(--font-size-24);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.stay-card__dates {
+  margin-top: 2px;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-16);
+  font-weight: 500;
+}
+
+.stay-card__foot {
+  margin-top: auto;
+  padding: var(--space-5) 0 var(--space-4);
+}
+
+.stay-card__foot p {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-16);
+  font-weight: 500;
+}
+
+.stay-card__foot .stay-card__total {
+  margin-top: var(--space-2);
+}
+
+.stay-card__foot p strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ── 우측: 메시지 컬럼 ── */
+.confirm-message h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 5vw, 4.25rem);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+}
+
+.confirm-message__lead {
+  margin-top: var(--space-6);
+  max-width: 32ch;
+  color: var(--text-secondary);
+  font-size: var(--font-size-18);
+  line-height: 1.5;
+}
+
+/* 결제 마감 카운트다운 — 결제 대기 상태에서 헤드라인 아래 노출 */
+.reservation-countdown {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-16);
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.reservation-countdown--urgent {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.reservation-countdown__label {
+  font-size: var(--font-size-14);
+  font-weight: 600;
+}
+
+.reservation-countdown__time {
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+}
+
+/* 검은 primary — 디자인 의도대로 브랜드색이 아닌 차분한 먹색 */
+.confirm-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 0 var(--space-8);
+  border-radius: var(--radius-12);
+  background: var(--color-gray-900);
+  color: var(--color-white);
+  font-size: var(--font-size-16);
+  font-weight: 700;
+  transition:
+    background 160ms ease,
+    transform 120ms ease;
+}
+
+.confirm-btn-primary:hover {
+  background: var(--color-black);
+}
+
+.confirm-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.confirm-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 54px;
+  padding: 0 var(--space-6);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-12);
+  background: var(--color-white);
+  color: var(--text-primary);
+  font-size: var(--font-size-16);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background 160ms ease;
+}
+
+.confirm-btn-ghost:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.confirm-btn-ghost:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* 보조 텍스트 링크 (예: '예약 목록으로') */
+.confirm-btn-text {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--space-6);
+  color: var(--text-primary);
+  font-size: var(--font-size-16);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: opacity 160ms ease;
+}
+
+.confirm-btn-text:hover {
+  opacity: 0.6;
+}
+
+.confirm-message__error {
+  margin-top: var(--space-5);
+}
+
+/* 취소된 예약: 좌측 숙소 이미지를 흐리게 처리 */
+.confirm-stage--muted .stay-card__media img {
+  filter: grayscale(0.6);
+  opacity: 0.72;
+}
+
+@media (max-width: 880px) {
+  .confirm-split {
+    grid-template-columns: 1fr;
+    gap: clamp(32px, 7vw, 52px);
+    max-width: 500px;
+  }
+
+  /* 모바일에선 메시지를 카드 위로 끌어올린다 */
+  .confirm-message {
+    order: -1;
+  }
+
+  .confirm-message__lead {
+    max-width: none;
+  }
+}

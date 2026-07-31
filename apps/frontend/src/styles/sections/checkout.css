@@ -1,0 +1,211 @@
+/* ────────────────────────────────────────────────────────────
+   결제 페이지 (CheckoutPage)
+   좌: 결제 수단(PayPal) / 우: 예약 요약
+   ──────────────────────────────────────────────────────────── */
+/* 폭·좌우 여백은 전역 .page-container 를 그대로 따른다 (다른 페이지와 좌측 정렬 일치) */
+.checkout-page {
+  width: 100%;
+}
+
+.checkout-page__inner {
+  width: 100%;
+}
+
+/* 상단 헤더 — 좌: 공용 page-heading / 우: 결제 마감 카운트다운 (우측 상단 빈 공간 채움) */
+.checkout-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.checkout-header .reservation-countdown {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.checkout-layout {
+  display: grid;
+  grid-template-columns: 1fr 0.9fr;
+  gap: 48px;
+  align-items: start;
+}
+
+.checkout-section-title {
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #222;
+}
+
+.checkout-pay {
+  min-width: 0;
+}
+
+.checkout-config-warning {
+  padding: 16px;
+  border: 1px solid #f0c36d;
+  border-radius: 12px;
+  background: #fdf6e3;
+  color: #6b5300;
+  font-size: 14px;
+}
+
+.checkout-config-warning__hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.checkout-config-warning code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+}
+
+.checkout-error {
+  margin-top: 16px;
+}
+
+.checkout-fineprint {
+  margin: 16px 0 0;
+  color: #717171;
+  font-size: 13px;
+}
+
+/* 우측 요약 카드 — 스크롤 시 따라오도록 sticky */
+.checkout-summary {
+  position: sticky;
+  top: 24px;
+}
+
+.checkout-summary__card {
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  background: #fff;
+}
+
+.checkout-summary__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #fff1f3;
+  color: #d6336c;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.checkout-summary__room {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.checkout-summary__thumb {
+  width: 96px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.checkout-summary__room-name {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+}
+
+.checkout-summary__room-region {
+  margin: 0;
+  color: #717171;
+  font-size: 14px;
+}
+
+.checkout-summary__divider {
+  margin: 20px 0;
+  border: none;
+  border-top: 1px solid #eee;
+}
+
+.checkout-summary__line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  color: #222;
+  font-size: 15px;
+}
+
+.checkout-summary__total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
+  font-size: 16px;
+  font-weight: 700;
+  color: #222;
+}
+
+/* 요약 카드 아래 예약 안내 — 우측 컬럼의 빈 공간을 채운다 */
+.checkout-reassure {
+  margin-top: 20px;
+  padding: 22px 24px;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  background: #fafafa;
+}
+
+.checkout-reassure__title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+}
+
+.checkout-reassure__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.checkout-reassure__item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  color: #4a4a4a;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.checkout-reassure__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #d6336c;
+}
+
+@media (max-width: 860px) {
+  .checkout-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .checkout-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .checkout-summary {
+    position: static;
+  }
+}

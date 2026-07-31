@@ -1,0 +1,165 @@
+.page-container {
+  /* 콘텐츠가 짧은 페이지에서도 남는 세로 공간을 채워 푸터를 항상 화면 맨 아래로 밀어낸다. */
+  flex: 1 0 auto;
+  width: min(var(--container), calc(100% - 48px));
+  margin: 0 auto;
+  padding: var(--space-10) 0 var(--space-16);
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.page-heading {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 760px;
+}
+
+.page-heading h1,
+.stack h1 {
+  margin-bottom: 0;
+  font-size: clamp(2.1rem, 4vw, var(--font-size-44));
+  line-height: var(--line-tight);
+  letter-spacing: 0;
+}
+
+.eyebrow {
+  margin-bottom: 0;
+  color: var(--color-brand);
+  font-size: var(--font-size-12);
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.muted {
+  color: var(--text-tertiary);
+}
+
+.home-hero {
+  position: relative;
+  display: grid;
+  gap: var(--space-8);
+  padding: var(--space-10);
+  overflow: visible;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-20);
+  background:
+    linear-gradient(135deg, rgba(255, 241, 243, 0.96), rgba(255, 255, 255, 0.9)),
+    url("https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1600&q=80")
+      center / cover;
+  box-shadow: var(--shadow-md);
+}
+
+.home-hero::after {
+  position: absolute;
+  right: 32px;
+  bottom: -48px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: rgba(232, 76, 96, 0.13);
+  content: "";
+}
+
+.home-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-meta {
+  flex-wrap: wrap;
+}
+
+.hero-meta span {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 var(--space-4);
+  border: 1px solid rgba(232, 76, 96, 0.18);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: 750;
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button,
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-8);
+  cursor: pointer;
+  font-weight: 800;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.primary-button {
+  color: var(--color-white);
+  background: var(--color-brand);
+  box-shadow: 0 12px 24px rgba(232, 76, 96, 0.22);
+}
+
+.primary-button:hover {
+  background: var(--color-brand-strong);
+  transform: translateY(-1px);
+}
+
+.secondary-button {
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  background: var(--color-white);
+}
+
+.secondary-button:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.ghost-button {
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+.ghost-button:hover {
+  color: var(--text-primary);
+  background: var(--surface-subtle);
+}
+
+.icon-button {
+  width: 42px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-sm);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.inline-action {
+  width: fit-content;
+}
+
+.full-width {
+  width: 100%;
+}
+

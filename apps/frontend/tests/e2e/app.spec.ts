@@ -26,8 +26,8 @@ async function mockCurrentUser(page: Page, user: MockCurrentUser) {
 test('숙소 목록에서 상세 화면으로 이동할 수 있다', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: '원하는 숙소를 검색하고 예약하세요.' })).toBeVisible();
-  await page.getByRole('link', { name: /성수 루프탑 스테이/ }).click();
-  await expect(page.getByRole('heading', { name: '성수 루프탑 스테이' })).toBeVisible();
+  await page.getByRole('link', { name: /서울시청/ }).first().click();
+  await expect(page.getByRole('heading', { name: '서울시청' })).toBeVisible();
 });
 
 test('검색바에서 가격 범위와 인원을 조정할 수 있다', async ({ page }) => {

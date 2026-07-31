@@ -1,9 +1,12 @@
 package com.airdnd.config;
 
 import com.airdnd.auth.OAuthService;
+import jakarta.servlet.DispatcherType;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -35,6 +38,19 @@ public class SecurityConfig {
         this.frontendBaseUrl = frontendBaseUrl;
     }
 
+    // Actuator endpoints live on the separate management port (8081, see application.yml).
+    // This chain matches only those endpoints and permits them, since the port itself is
+    // private (not exposed to the internet) — Prometheus scrapes it over the box network.
+    @Bean
+    @Order(0)
+    public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity
+                .securityMatcher(EndpointRequest.toAnyEndpoint())
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable());
+        return httpSecurity.build();
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity, SecurityContextRepository securityContextRepository) throws Exception{
         httpSecurity
@@ -42,8 +58,10 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
                 .authorizeHttpRequests(authorize -> authorize
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                         .requestMatchers("/", "/oauth2/authorization/**", "/login/oauth2/code/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/rooms/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/reservations/rooms/*/booked-dates").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/members/me/host-activation").hasRole("GUEST")
                         .requestMatchers(HttpMethod.GET, "/api/rooms").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/rooms/**").permitAll()

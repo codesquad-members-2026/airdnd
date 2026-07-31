@@ -3,7 +3,12 @@ spring:
     import:
       - optional:file:.env[.properties]
       - optional:file:../../.env[.properties]
+  flyway:
+    # 기본 마이그레이션 + 로컬 전용 샘플 데이터(db/seed). prod 는 db/migration 만 사용.
+    locations: classpath:db/migration,classpath:db/seed
   datasource:
+    hikari:
+      connection-init-sql: "SET innodb_lock_wait_timeout = 5"
     url: "jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:airdnd}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8"
     username: ${MYSQL_USER:airdnd}
     password: ${MYSQL_PASSWORD:airdnd}

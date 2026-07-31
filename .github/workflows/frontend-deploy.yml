@@ -37,8 +37,6 @@ jobs:
     defaults:
       run:
         working-directory: apps/frontend
-    env:
-      VITE_ENABLE_MOCKS: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,13 +57,28 @@ jobs:
       - name: Unit tests
         run: npm run test
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+      # NOTE: the Playwright e2e suite is intentionally NOT run here. It requires
+      # a real backend at :8080 (see playwright.config.ts) which CI doesn't
+      # provide — the MSW mock layer was scaffolded (src/mocks/) but never
+      # implemented, so VITE_ENABLE_MOCKS has no effect. Run `npm run e2e`
+      # locally against a running backend. Re-add a job here once mocks exist
+      # or a backend is provisioned in CI.
 
-      - name: End-to-end tests
-        run: npm run e2e
-
+      # Job-level env keeps VITE_ENABLE_MOCKS=true for the test steps above
+      # (e2e has no real backend in CI). The PROD build must NOT ship mocks and
+      # must point at the real API, so we override env on THIS step only —
+      # step env wins over job env.
       - name: Build
+        env:
+          VITE_ENABLE_MOCKS: "false"
+          # Same CloudFront domain as the SPA → /api and /oauth2 are same-origin
+          # (no CORS, cookies flow). APP_BASE_URL = https://<dist>.cloudfront.net.
+          VITE_API_BASE_URL: ${{ vars.APP_BASE_URL }}
+          VITE_OAUTH_BASE_URL: ${{ vars.APP_BASE_URL }}
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          VITE_GOOGLE_MAPS_MAP_ID: ${{ secrets.VITE_GOOGLE_MAPS_MAP_ID }}
+          VITE_PAYPAL_CLIENT_ID: ${{ secrets.VITE_PAYPAL_CLIENT_ID }}
+          VITE_PAYPAL_CURRENCY: ${{ vars.VITE_PAYPAL_CURRENCY || 'USD' }}
         run: npm run build
 
       - name: Upload frontend artifact
@@ -75,13 +88,39 @@ jobs:
           path: apps/frontend/dist
           if-no-files-found: error
 
-  deploy-placeholder:
-    name: Deployment Hook Placeholder
+  deploy:
+    name: Deploy Frontend
     runs-on: ubuntu-latest
     needs: build
+    # Same gate as the backend: auto-deploy on push to main, or manual dispatch.
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     environment: ${{ github.event.inputs.environment || 'dev' }}
+    permissions:
+      contents: read  # checkout not needed, but keep read for parity
+      id-token: write # OIDC token to assume the AWS deploy role
     steps:
-      - name: Explain next deployment step
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+
+      - name: Configure AWS credentials (OIDC, no stored keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # --delete removes files that no longer exist in the new build (old hashed
+      # JS/CSS chunks), keeping the bucket in sync with dist/ exactly.
+      - name: Sync to S3
+        run: aws s3 sync dist/ "s3://${{ vars.S3_BUCKET }}/" --delete
+
+      # CloudFront caches aggressively (Managed-CachingOptimized on the SPA
+      # behavior). Invalidate everything so users get the new index.html and
+      # assets immediately instead of waiting for TTLs to expire.
+      - name: Invalidate CloudFront
         run: |
-          echo "Frontend artifact was built successfully."
-          echo "Add provider-specific deployment steps here when the frontend target is decided."
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*"

@@ -1,0 +1,2 @@
+# Drop community dashboard JSON files here to auto-provision them.
+# See monitoring/README.md for the dashboard IDs (Spring/JVM, MySQL, Node, cAdvisor).

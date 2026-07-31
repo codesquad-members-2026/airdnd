@@ -1,0 +1,221 @@
+/* ============================================================
+   Airdnd custom map markers — 3 directions × states
+   Direction 1: Classic white pill (Airbnb-style)
+   Direction 2: Branded (pink on select/hover)
+   Direction 3: Anchored teardrop pin with tail
+   ============================================================ */
+
+.am {
+  --am-accent: var(--color-brand);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(24, 24, 27, 0.10);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-13);
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(24,24,27,.12), 0 4px 10px rgba(24,24,27,.14);
+  cursor: pointer;
+  transition: transform 140ms cubic-bezier(.2,.7,.3,1), background 140ms ease,
+              color 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+  will-change: transform;
+}
+.am__star { width: 12px; height: 12px; color: var(--am-accent); flex: none; }
+.am__heart { width: 13px; height: 13px; flex: none; }
+.am__rating { font-weight: 800; }
+
+/* ---- hover (shared) ---- */
+.am.is-hover,
+.am:hover {
+  transform: scale(1.08);
+  box-shadow: 0 2px 4px rgba(24,24,27,.16), 0 10px 22px rgba(24,24,27,.20);
+  z-index: 5;
+}
+
+/* ---- selected: Direction 1 & default = ink fill ---- */
+.am.is-selected {
+  transform: scale(1.12);
+  background: var(--text-primary);
+  color: var(--color-white);
+  border-color: var(--text-primary);
+  z-index: 6;
+}
+.am.is-selected .am__star { color: #ffd0d8; }
+
+/* ---- viewed (already opened) ---- */
+.am.is-viewed {
+  background: var(--color-gray-100);
+  color: var(--text-tertiary);
+  border-color: rgba(24,24,27,.08);
+  box-shadow: 0 1px 2px rgba(24,24,27,.08);
+}
+.am.is-viewed .am__star { color: var(--color-gray-300); }
+.am.is-viewed.is-selected { /* selected overrides viewed */
+  background: var(--text-primary);
+  color: var(--color-white);
+}
+
+/* ---- sold out / unavailable ---- */
+.am.is-soldout {
+  background: var(--color-gray-50);
+  color: var(--text-tertiary);
+  border-style: dashed;
+  border-color: var(--border-strong);
+  box-shadow: 0 1px 2px rgba(24,24,27,.06);
+}
+.am.is-soldout .am__price { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+
+/* ---- wishlisted heart ---- */
+.am__heart { display: none; }
+.am.is-wishlisted .am__heart { display: block; color: var(--am-accent); }
+.am.is-selected.is-wishlisted .am__heart { color: #ff9eac; }
+
+/* ============================================================
+   Direction 2 — Branded: pink fill on hover & selected
+   ============================================================ */
+.am--d2.is-hover,
+.am--d2:hover {
+  background: var(--color-brand-soft);
+  border-color: rgba(232,76,96,.45);
+  color: var(--color-brand-strong);
+}
+.am--d2.is-hover .am__star,
+.am--d2:hover .am__star { color: var(--am-accent); }
+.am--d2.is-selected {
+  background: var(--am-accent);
+  border-color: var(--am-accent);
+  color: var(--color-white);
+  box-shadow: 0 2px 4px rgba(232,76,96,.30), 0 12px 26px rgba(232,76,96,.34);
+}
+.am--d2.is-selected .am__star { color: #fff; }
+.am--d2.is-wishlisted .am__heart { color: var(--am-accent); }
+.am--d2.is-selected.is-wishlisted .am__heart { color: #ffe3e7; }
+
+/* ============================================================
+   Direction 3 — Anchored teardrop pin (with tail + dot)
+   ============================================================ */
+.am--d3 {
+  border-radius: 18px 18px 18px 4px;
+  padding-left: 14px;
+}
+.am--d3::after { /* tail */
+  content: "";
+  position: absolute;
+  left: 9px;
+  bottom: -6px;
+  width: 14px;
+  height: 14px;
+  background: inherit;
+  border-right: 1px solid rgba(24,24,27,.10);
+  border-bottom: 1px solid rgba(24,24,27,.10);
+  border-bottom-left-radius: 3px;
+  transform: rotate(45deg);
+  z-index: -1;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.am--d3.is-selected {
+  background: var(--am-accent);
+  border-color: var(--am-accent);
+  color: #fff;
+}
+.am--d3.is-selected::after { border-color: var(--am-accent); }
+.am--d3.is-selected .am__star { color: #fff; }
+.am--d3.is-hover:not(.is-selected),
+.am--d3:hover:not(.is-selected) { background: #fff; }
+.am--d3.is-wishlisted .am__heart { color: var(--am-accent); }
+.am--d3.is-selected.is-wishlisted .am__heart { color: #ffe3e7; }
+
+/* ============================================================
+   Cluster marker
+   ============================================================ */
+.cluster {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  border: 1px solid rgba(232,76,96,.30);
+  box-shadow: 0 2px 6px rgba(24,24,27,.14), 0 10px 24px rgba(232,76,96,.18);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: transform 150ms cubic-bezier(.2,.7,.3,1), box-shadow 150ms ease;
+}
+.cluster::before { /* halo ring */
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 2px solid rgba(232,76,96,.16);
+  opacity: 0;
+  transition: opacity 150ms ease, inset 150ms ease;
+}
+.cluster:hover { transform: scale(1.06); }
+.cluster:hover::before { opacity: 1; inset: -8px; }
+.cluster__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--font-size-15);
+  font-weight: 850;
+  color: var(--color-brand-strong);
+  line-height: 1;
+}
+.cluster__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--am-accent); }
+.cluster__range {
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--text-tertiary);
+  line-height: 1;
+}
+
+/* ============================================================
+   Detail-page branded pin (single location)
+   ============================================================ */
+.detail-pin {
+  position: relative;
+  width: 48px;
+  height: 62px;
+}
+/* soft ground ring at the tip — marks the exact spot without covering it */
+.detail-pin__pulse {
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, 40%);
+  border-radius: 50%;
+  background: var(--am-accent, var(--color-brand));
+  opacity: .2;
+  animation: detailPulse 2.6s cubic-bezier(.3,0,.4,1) infinite;
+}
+@keyframes detailPulse {
+  0%   { transform: translate(-50%, 40%) scale(.6); opacity: .26; }
+  70%  { transform: translate(-50%, 40%) scale(2.2); opacity: 0; }
+  100% { transform: translate(-50%, 40%) scale(2.2); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-pin__pulse { animation: none; opacity: .14; transform: translate(-50%, 40%) scale(1.6); }
+}
+/* teardrop balloon pin: tip pinpoints the location, glyph in the head */
+.detail-pin__shape {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 57px;
+  color: var(--am-accent, var(--color-brand));
+  filter: drop-shadow(0 5px 9px rgba(24, 24, 27, .26));
+}

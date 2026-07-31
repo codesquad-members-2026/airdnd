@@ -1,0 +1,18 @@
+# Local provider plugins / cache
+.terraform/
+
+# State can contain secrets in plaintext — never commit local state
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Your real variable values (secrets)
+terraform.tfvars
+*.auto.tfvars
+
+# Override files are for local experiments
+override.tf
+override.tf.json
+
+# NOTE: .terraform.lock.hcl is intentionally NOT ignored — commit it so
+# everyone resolves the same provider versions.
